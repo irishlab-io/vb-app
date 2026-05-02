@@ -1,7 +1,10 @@
+import logging
 import os
 import time
 
 import psycopg2
+
+logger = logging.getLogger(__name__)
 
 # Vulnerable database configuration
 # CWE-259: Use of Hard-coded Password
@@ -32,16 +35,16 @@ def init_connection_pool(min_connections=2, max_connections=30, max_retries=5, r
     while retry_count < max_retries:
         try:
             connection_pool = psycopg2.pool.SimpleConnectionPool(min_connections, max_connections, **DB_CONFIG)
-            print("Database connection pool created successfully")
+            logger.info("Database connection pool created successfully")
             return connection_pool
         except Exception as e:
             retry_count += 1
-            print(f"Failed to connect to database (attempt {retry_count}/{max_retries}): {e}")
+            logger.error("Failed to connect to database (attempt %s/%s): %s", retry_count, max_retries, e)
             if retry_count < max_retries:
-                print(f"Retrying in {retry_delay} seconds...")
+                logger.info("Retrying in %s seconds...", retry_delay)
                 time.sleep(retry_delay)
             else:
-                print("Max retries reached. Could not establish database connection.")
+                logger.error("Max retries reached. Could not establish database connection.")
                 raise e
 
 
@@ -54,7 +57,7 @@ def check_database_connection():
             cursor.fetchone()
         return True
     except Exception as e:
-        print(f"Database health check failed: {e}")
+        logger.error("Database health check failed: %s", e)
         return False
     finally:
         if conn:
@@ -252,11 +255,11 @@ def init_db():
             """)
 
             conn.commit()
-            print("Database initialized successfully")
+            logger.info("Database initialized successfully")
 
     except Exception as e:
         # Vulnerability: Detailed error information exposed
-        print(f"Error initializing database: {e}")
+        logger.error("Error initializing database: %s", e)
         conn.rollback()
         raise e
     finally:

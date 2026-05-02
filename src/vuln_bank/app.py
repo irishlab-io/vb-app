@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import string
@@ -47,6 +48,8 @@ app = Flask(
     static_folder=str(_PKG_DIR / "static"),
 )
 CORS(app)
+
+logger = logging.getLogger(__name__)
 
 # Initialize database connection pool
 init_connection_pool()
@@ -412,7 +415,7 @@ def register():
             return response
 
         except Exception as e:
-            print(f"Registration error: {str(e)}")
+            logger.error("Registration error: %s", str(e))
             return jsonify({"status": "error", "message": "Registration failed", "error": str(e)}), 500
 
     return render_template("register.html")
@@ -429,25 +432,25 @@ def login():
                 "Your account has been suspended, contact support or walk in to any of our branch to resolve the issue"
             )
 
-            print(f"Login attempt - Username: {username}")  # Debug print
+            logger.debug("Login attempt - Username: %s", username)
 
             # SQL Injection vulnerability (intentionally vulnerable)
             query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-            print(f"Debug - Login query: {query}")  # Debug print
+            logger.debug("Debug - Login query: %s", query)
 
             user = execute_query(query)
-            print(f"Debug - Query result: {user}")  # Debug print
+            logger.debug("Debug - Query result: %s", user)
 
             if user and len(user) > 0:
                 user = user[0]  # Get first row
-                print(f"Debug - Found user: {user}")  # Debug print
+                logger.debug("Debug - Found user: %s", user)
 
                 if len(user) > 9 and user[9]:
                     return jsonify({"status": "error", "message": suspension_message}), 403
 
                 # Generate JWT token instead of using session
                 token = generate_token(user[0], user[1], user[5])
-                print(f"Debug - Generated token: {token}")  # Debug print
+                logger.debug("Debug - Generated token: %s", token)
 
                 response = make_response(
                     jsonify(
@@ -484,7 +487,7 @@ def login():
             ), 401
 
         except Exception as e:
-            print(f"Login error: {str(e)}")
+            logger.error("Login error: %s", str(e))
             return jsonify({"status": "error", "message": "Login failed", "error": str(e)}), 500
 
     return render_template("login.html")
@@ -728,7 +731,7 @@ def upload_profile_picture(current_user):
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
-        print(f"Profile picture upload error: {str(e)}")
+        logger.error("Profile picture upload error: %s", str(e))
         return jsonify(
             {
                 "status": "error",
@@ -794,7 +797,7 @@ def upload_profile_picture_url(current_user):
             }
         )
     except Exception as e:
-        print(f"URL image import error: {str(e)}")
+        logger.error("URL image import error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1006,7 +1009,7 @@ def request_loan(current_user):
         return jsonify({"status": "success", "message": "Loan requested successfully"})
 
     except Exception as e:
-        print(f"Loan request error: {str(e)}")
+        logger.error("Loan request error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1102,7 +1105,7 @@ def approve_loan(current_user, loan_id):
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
-        print(f"Loan approval error: {str(e)}")
+        logger.error("Loan approval error: %s", str(e))
         return jsonify(
             {
                 "status": "error",
@@ -1139,7 +1142,7 @@ def delete_account(current_user, user_id):
         )
 
     except Exception as e:
-        print(f"Delete account error: {str(e)}")
+        logger.error("Delete account error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1184,7 +1187,7 @@ def toggle_account_suspension(current_user, user_id):
         )
 
     except Exception as e:
-        print(f"Toggle suspension error: {str(e)}")
+        logger.error("Toggle suspension error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1212,7 +1215,7 @@ def create_admin(current_user):
         return jsonify({"status": "success", "message": "Admin created successfully"})
 
     except Exception as e:
-        print(f"Create admin error: {str(e)}")
+        logger.error("Create admin error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1256,7 +1259,7 @@ def forgot_password():
             return jsonify({"status": "error", "message": "User not found"}), 404
 
         except Exception as e:
-            print(f"Forgot password error: {str(e)}")
+            logger.error("Forgot password error: %s", str(e))
             return jsonify({"status": "error", "message": str(e)}), 500
 
     return render_template("forgot_password.html")
@@ -1299,7 +1302,7 @@ def reset_password():
 
         except Exception as e:
             # Vulnerability: Detailed error exposure
-            print(f"Reset password error: {str(e)}")
+            logger.error("Reset password error: %s", str(e))
             return jsonify({"status": "error", "message": "Password reset failed", "error": str(e)}), 500
 
     return render_template("reset_password.html")
@@ -1345,7 +1348,7 @@ def api_v1_forgot_password():
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
-        print(f"Forgot password error: {str(e)}")
+        logger.error("Forgot password error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1387,7 +1390,7 @@ def api_v2_forgot_password():
 
     except Exception as e:
         # Vulnerability: Detailed error exposure still exists
-        print(f"Forgot password error: {str(e)}")
+        logger.error("Forgot password error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1428,7 +1431,7 @@ def api_v3_forgot_password():
 
     except Exception as e:
         # Vulnerability: Detailed error exposure still exists
-        print(f"Forgot password error: {str(e)}")
+        logger.error("Forgot password error: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -1515,7 +1518,7 @@ def api_v1_reset_password():
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
-        print(f"Reset password error: {str(e)}")
+        logger.error("Reset password error: %s", str(e))
         return jsonify({"status": "error", "message": "Password reset failed", "error": str(e)}), 500
 
 
@@ -1563,7 +1566,7 @@ def api_v2_reset_password():
 
     except Exception as e:
         # Vulnerability: Still exposing error details but less verbose
-        print(f"Reset password error: {str(e)}")
+        logger.error("Reset password error: %s", str(e))
         return jsonify(
             {
                 "status": "error",
@@ -1600,7 +1603,7 @@ def api_v3_reset_password():
         return jsonify({"status": "error", "message": "Invalid reset PIN"}), 400
 
     except Exception as e:
-        print(f"Reset password error: {str(e)}")
+        logger.error("Reset password error: %s", str(e))
         return jsonify({"status": "error", "message": "Password reset failed"}), 500
 
 

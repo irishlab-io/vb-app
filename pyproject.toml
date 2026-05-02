@@ -16,8 +16,10 @@ dependencies = [
     "flask==2.0.1",
     "graphene==3.3",
     "psycopg2-binary==2.9.9",
+    "pycryptodome==3.18.0",
     "pyjwt==2.4.0",
     "python-dotenv==1.0.0",
+    "pyyaml==5.3.1",
     "requests==2.31.0",
     "werkzeug==2.0.1",
 ]
@@ -30,6 +32,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.6.1",
     "ruff>=0.15.10",
+    "ty>=0.0.18",
 ]
 
 data = [

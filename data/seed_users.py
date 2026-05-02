@@ -23,6 +23,7 @@ Usage:
 """
 
 import os
+import logging
 import random
 import string
 import sys
@@ -31,6 +32,13 @@ from pathlib import Path
 import psycopg2
 from dotenv import load_dotenv
 from faker import Faker
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Load environment variables
@@ -125,14 +133,17 @@ def build_fake_users(
 
 
 def main() -> None:
-    print(
-        f"Connecting to database '{DB_CONFIG['dbname']}' at {DB_CONFIG['host']}:{DB_CONFIG['port']} …"
+    logger.info(
+        "Connecting to database '%s' at %s:%s …",
+        DB_CONFIG["dbname"],
+        DB_CONFIG["host"],
+        DB_CONFIG["port"],
     )
 
     try:
         conn = psycopg2.connect(**DB_CONFIG)
     except psycopg2.OperationalError as exc:
-        print(f"ERROR: Could not connect to the database.\n  {exc}", file=sys.stderr)
+        logger.error("ERROR: Could not connect to the database.\n  %s", exc)
         sys.exit(1)
 
     conn.autocommit = False
@@ -140,9 +151,9 @@ def main() -> None:
     try:
         with conn.cursor() as cur:
             if SEED_CLEAR:
-                print("SEED_CLEAR=true — deleting all non-admin users …")
+                logger.info("SEED_CLEAR=true — deleting all non-admin users …")
                 cur.execute("DELETE FROM users WHERE is_admin = FALSE")
-                print(f"  Deleted {cur.rowcount} user(s).")
+                logger.info("  Deleted %s user(s).", cur.rowcount)
 
             # Collect account numbers already in use so we never duplicate them
             cur.execute("SELECT account_number FROM users")
@@ -152,7 +163,7 @@ def main() -> None:
             cur.execute("SELECT username FROM users")
             existing_usernames: set[str] = {row[0] for row in cur.fetchall()}
 
-        print(f"Generating {SEED_COUNT} fake user(s) with locale '{SEED_LOCALE}' …")
+        logger.info("Generating %s fake user(s) with locale '%s' …", SEED_COUNT, SEED_LOCALE)
         faker = Faker(SEED_LOCALE)
         Faker.seed(0)  # reproducible output; remove or change for random results
 
@@ -164,7 +175,7 @@ def main() -> None:
         with conn.cursor() as cur:
             for user in users:
                 if user["username"] in existing_usernames:
-                    print(f"  SKIP  {user['username']} (username already exists)")
+                    logger.info("  SKIP  %s (username already exists)", user["username"])
                     skipped += 1
                     continue
 
@@ -181,21 +192,24 @@ def main() -> None:
                     user,
                 )
                 if cur.rowcount:
-                    print(
-                        f"  INSERT {user['username']}  (acc: {user['account_number']}, balance: {user['balance']:.2f})"
+                    logger.info(
+                        "  INSERT %s  (acc: %s, balance: %.2f)",
+                        user["username"],
+                        user["account_number"],
+                        user["balance"],
                     )
                     existing_usernames.add(user["username"])
                     inserted += 1
                 else:
-                    print(f"  SKIP  {user['username']} (conflict on insert)")
+                    logger.info("  SKIP  %s (conflict on insert)", user["username"])
                     skipped += 1
 
         conn.commit()
-        print(f"\nDone. Inserted: {inserted}, Skipped: {skipped}")
+        logger.info("\nDone. Inserted: %s, Skipped: %s", inserted, skipped)
 
     except Exception as exc:
         conn.rollback()
-        print(f"ERROR: {exc}", file=sys.stderr)
+        logger.error("ERROR: %s", exc)
         sys.exit(1)
     finally:
         conn.close()

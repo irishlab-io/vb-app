@@ -1,9 +1,12 @@
 import datetime
+import logging
 import sqlite3
 from functools import wraps
 
 import jwt
 from flask import jsonify, request
+
+logger = logging.getLogger(__name__)
 
 # Vulnerable JWT implementation with common security issues
 
@@ -53,7 +56,7 @@ def verify_token(token):
             return None
     except Exception as e:
         # Vulnerability: Detailed error exposure in logs
-        print(f"Token verification error: {str(e)}")
+        logger.error("Token verification error: %s", str(e))
         return None
 
 
