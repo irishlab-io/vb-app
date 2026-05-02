@@ -1,4 +1,5 @@
 __pycache__/
+.coverage
 .env
 .pytest_cache/
 .venv/
@@ -10,3 +11,4 @@ build/
 dist/
 src/vuln_bank/static/uploads/*_avatar.gif
 src/vuln_bank/static/uploads/*_photo.jpg
+tests/coverage
