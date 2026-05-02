@@ -1,0 +1,218 @@
+---
+name: CI - Main
+run-name: Continuous Integration on ${{ github.head_ref || github.ref_name }} by ${{ github.actor }}
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+jobs:
+  pre-commit:
+    name: Call Prek
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-slim]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run Prek Checks
+        id: precommit
+        uses: j178/prek-action@cbc2f23eb5539cf20d82d1aabd0d0ecbcc56f4e3 # v2.0.2
+        env:
+          SKIP: "actionlint, ggshield, pytest, uv-export"
+        continue-on-error: true
+
+      - name: Check status of potentially failing step and issue warning
+        if: steps.precommit.outcome == 'failure'
+        run: |
+          echo "::error::The previous step detected potential pre-commit issues in the code. Please review the CI report above."
+        shell: bash
+
+  code_build:
+    needs:
+      - pre-commit
+    name: Call Python UV (Build & Unit Test)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        python-version: ['3.9']
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@7edac99f961f18b581bbd960d59d049f04c0002f # v6.4.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          version: latest
+
+      - name: Setup Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev --frozen
+        shell: bash
+
+      - name: Build & Test projects
+        id: build
+        run: |
+          uv build
+          uv run pytest
+          uv cache prune --ci # Minimize UV cache
+        shell: bash
+
+  code_scan:
+    needs:
+      - pre-commit
+    name: Vulnerabilities Scan
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        python-version: ['3.9']
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          version: latest
+
+      - name: Setup Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run SAST Scan
+        id: sast
+        run: |
+          echo Run SAST
+          echo "::warning::Must implement a code scanning mechanism."
+        shell: bash
+
+      - name: Run SCA Scan
+        id: sca
+        run: |
+          echo Run SCA
+          echo "::warning::Must implement a dependencies scanning mechanism."
+        shell: bash
+
+  docker_build:
+    needs:
+      - code_build
+    name: Container Build
+    runs-on: ubuntu-24.04
+    outputs:
+      image-tag: ${{ steps.image-tag.outputs.image-tag }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Login to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=auto
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}},priority=100
+            type=ref,event=branch,priority=100
+            type=raw,value=gha-${{ github.run_id }},enable=${{github.event_name == 'pull_request'}},priority=200
+            type=raw,value=nightly-${{ github.run_id }},enable=${{github.event_name == 'schedule'}},priority=200
+            type=ref,event=pr,priority=200
+            type=ref,event=tag,priority=200
+            type=sha,value={{sha}},enable={{is_default_branch}},priority=300
+
+      - name: Docker Build
+        id: build_image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          platforms: |
+            linux/amd64
+          context: .
+          file: ./Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            GIT_COMMIT=${{ github.sha }}
+            REPO_URL=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Find the primary image tag we just pushed, and output it
+        id: image-tag
+        run: |
+          # shellcheck disable=SC2086
+          echo "image-tag=${{ steps.docker_meta.outputs.version }}" >> $GITHUB_OUTPUT
+        shell: bash
+
+  docker_scan:
+    needs:
+      - code_scan
+      - docker_build
+    name: Container Vulnerability Scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Run Container Scan
+        id: container
+        run: |
+          echo Run Container Scan
+          echo "::warning::Must implement a container scanning mechanism."
+        shell: bash

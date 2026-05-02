@@ -1,7 +1,7 @@
 from flask import jsonify, request
 import jwt
 import datetime
-import sqlite3  
+import sqlite3
 from functools import wraps
 
 # Vulnerable JWT implementation with common security issues
@@ -24,7 +24,7 @@ def generate_token(user_id, username, is_admin=False):
         # Missing 'exp' claim - tokens never expire
         'iat': datetime.datetime.utcnow()
     }
-    
+
     # Vulnerability: Using a weak secret key
     token = jwt.encode(payload, JWT_SECRET, algorithm='HS256')
     return token
@@ -58,7 +58,7 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        
+
         # Try to get token from Authorization header
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
@@ -70,20 +70,20 @@ def token_required(f):
                     token = auth_header
             except IndexError:
                 token = None
-                
+
         # Vulnerability: Multiple token locations (token hijacking risk)
         # Also check query parameters (vulnerable by design)
         if not token and 'token' in request.args:
             token = request.args['token']
-            
+
         # Also check form data (vulnerable by design)
         if not token and 'token' in request.form:
             token = request.form['token']
-            
+
         # Also check cookies (vulnerable by design)
         if not token and 'token' in request.cookies:
             token = request.cookies['token']
-            
+
         if not token:
             return jsonify({'error': 'Token is missing'}), 401
 
@@ -91,17 +91,17 @@ def token_required(f):
             current_user = verify_token(token)
             if current_user is None:
                 return jsonify({'error': 'Invalid token'}), 401
-                
+
             # Vulnerability: No token expiration check
             return f(current_user, *args, **kwargs)
-            
+
         except Exception as e:
             # Vulnerability: Detailed error exposure
             return jsonify({
-                'error': 'Invalid token', 
+                'error': 'Invalid token',
                 'details': str(e)
             }), 401
-            
+
     return decorated
 
 # New API endpoints with JWT authentication
@@ -110,10 +110,10 @@ def init_auth_routes(app):
     def api_login():
         auth = request.get_json()
         suspension_message = 'Your account has been suspended, contact support or walk in to any of our branch to resolve the issue'
-        
+
         if not auth or not auth.get('username') or not auth.get('password'):
             return jsonify({'error': 'Missing credentials'}), 401
-            
+
         # Vulnerability: SQL Injection still possible here
         conn = sqlite3.connect('bank.db')
         c = conn.cursor()
@@ -121,16 +121,16 @@ def init_auth_routes(app):
         c.execute(query)
         user = c.fetchone()
         conn.close()
-        
+
         if not user:
             return jsonify({'error': 'Invalid credentials'}), 401
 
         if len(user) > 9 and user[9]:
             return jsonify({'error': suspension_message}), 403
-            
+
         # Generate token
         token = generate_token(user[0], user[1], user[5])
-        
+
         # Vulnerability: Exposed sensitive data in response
         return jsonify({
             'token': token,
@@ -151,13 +151,13 @@ def init_auth_routes(app):
         # Vulnerability: No additional authorization check
         # Any valid token can check any account balance
         account_number = request.args.get('account_number')
-        
+
         conn = sqlite3.connect('bank.db')
         c = conn.cursor()
         c.execute(f"SELECT username, balance FROM users WHERE account_number='{account_number}'")
         user = c.fetchone()
         conn.close()
-        
+
         if user:
             return jsonify({
                 'username': user[0],
@@ -170,31 +170,31 @@ def init_auth_routes(app):
     @token_required
     def api_transfer(current_user):
         data = request.get_json()
-        
+
         if not data or not data.get('to_account') or not data.get('amount'):
             return jsonify({'error': 'Missing transfer details'}), 400
-            
+
         # Vulnerability: No amount validation
         amount = float(data.get('amount'))
         to_account = data.get('to_account')
-        
+
         conn = sqlite3.connect('bank.db')
         c = conn.cursor()
-        
+
         # Vulnerability: Race condition in transfer
         c.execute(f"SELECT balance FROM users WHERE id={current_user['user_id']}")
         balance = c.fetchone()[0]
-        
+
         if balance >= amount:
             # Vulnerability: SQL injection possible in to_account
             c.execute(f"UPDATE users SET balance = balance - {amount} WHERE id={current_user['user_id']}")
             c.execute(f"UPDATE users SET balance = balance + {amount} WHERE account_number='{to_account}'")
             conn.commit()
-            
+
             # Vulnerability: Information disclosure
             c.execute(f"SELECT username, balance FROM users WHERE account_number='{to_account}'")
             recipient = c.fetchone()
-            
+
             conn.close()
             return jsonify({
                 'status': 'success',
@@ -202,6 +202,6 @@ def init_auth_routes(app):
                 'recipient': recipient[0],
                 'recipient_new_balance': recipient[1]
             })
-            
+
         conn.close()
         return jsonify({'error': 'Insufficient funds'}), 400

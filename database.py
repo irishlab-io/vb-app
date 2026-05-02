@@ -28,7 +28,7 @@ def init_connection_pool(min_connections=2, max_connections=30, max_retries=5, r
         return connection_pool
 
     retry_count = 0
-    
+
     while retry_count < max_retries:
         try:
             connection_pool = psycopg2.pool.SimpleConnectionPool(
@@ -106,7 +106,7 @@ def init_db():
                 cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE")
             except Exception:
                 pass  # Column already exists or error adding it
-            
+
             # Create loans table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS loans (
@@ -116,7 +116,7 @@ def init_db():
                     status TEXT DEFAULT 'pending'
                 )
             ''')
-            
+
             # Create transactions table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS transactions (
@@ -129,7 +129,7 @@ def init_db():
                     description TEXT
                 )
             ''')
-            
+
             # Create virtual cards table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS virtual_cards (
@@ -174,18 +174,18 @@ def init_db():
                 cursor.execute("ALTER TABLE card_transactions ALTER COLUMN amount TYPE NUMERIC(20, 8)")
             except Exception:
                 pass
-            
+
             # Create default admin account if it doesn't exist
             cursor.execute("SELECT * FROM users WHERE username='admin'")
             if not cursor.fetchone():
                 cursor.execute(
                     """
-                    INSERT INTO users (username, password, account_number, balance, is_admin) 
+                    INSERT INTO users (username, password, account_number, balance, is_admin)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
                     ('admin', 'admin123', 'ADMIN001', 1000000.0, True)
                 )
-            
+
             # Create bill categories table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS bill_categories (
@@ -229,8 +229,8 @@ def init_db():
 
             # Insert default bill categories
             cursor.execute("""
-                INSERT INTO bill_categories (name, description) 
-                VALUES 
+                INSERT INTO bill_categories (name, description)
+                VALUES
                 ('Utilities', 'Water, Electricity, Gas bills'),
                 ('Telecommunications', 'Phone, Internet, Cable TV'),
                 ('Insurance', 'Life, Health, Auto insurance'),
@@ -240,8 +240,8 @@ def init_db():
 
             # Insert sample billers
             cursor.execute("""
-                INSERT INTO billers (category_id, name, account_number, description, minimum_amount) 
-                VALUES 
+                INSERT INTO billers (category_id, name, account_number, description, minimum_amount)
+                VALUES
                 (1, 'City Water', 'WATER001', 'City Water Utility', 10),
                 (1, 'PowerGen Electric', 'POWER001', 'Electricity Provider', 20),
                 (2, 'TeleCom Services', 'TEL001', 'Phone and Internet', 25),
@@ -250,10 +250,10 @@ def init_db():
                 (4, 'Universal Bank Card', 'CC001', 'Credit Card Payments', 50)
                 ON CONFLICT DO NOTHING
             """)
-            
+
             conn.commit()
             print("Database initialized successfully")
-            
+
     except Exception as e:
         # Vulnerability: Detailed error information exposed
         print(f"Error initializing database: {e}")
