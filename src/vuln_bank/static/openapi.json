@@ -1539,7 +1539,7 @@
   "servers": [
     {
       "description": "Controlled Production Server",
-      "url": "https://vulnbank.org"
+      "url": "https://vulnbank.ca"
     }
   ],
   "tags": [
