@@ -13,14 +13,14 @@ default_install_hook_types:
   - commit-msg
   - pre-commit
 default_language_version:
-  python: python3.9
+  python: python3.10
 repos:
   - repo: meta
     hooks:
       - id: identity
         name: "meta | pre-commit hooks"
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.10
+    rev: v4.13.9
     hooks:
       - id: commitizen
         name: "commitizen | validate commit messages"
@@ -58,7 +58,7 @@ repos:
       - id: trailing-whitespace
         name: "general | remove trailing whitespace"
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.8
+    rev: 0.11.2
     hooks:
       - id: uv-lock
         name: "python | uv: lock dependencies"
@@ -67,3 +67,12 @@ repos:
     hooks:
       - id: actionlint
         name: "gh-action | lint: run actionlint"
+  - repo: local
+    hooks:
+      - id: pytest
+        name: "python | test: run pytest"
+        entry: |
+          uv run pytest -m "not e2e" --color=yes
+        language: system
+        types: [python]
+        pass_filenames: false
