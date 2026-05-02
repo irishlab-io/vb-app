@@ -16,7 +16,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./static/uploads:/app/static/uploads
+      - ./src/vuln_bank/static/uploads:/app/src/vuln_bank/static/uploads
     networks:
       - vuln_network
 

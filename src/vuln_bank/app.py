@@ -7,8 +7,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Project root: src/vuln_bank/app.py → src/vuln_bank/ → src/ → project root
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# Package directory: src/vuln_bank/app.py → src/vuln_bank/
+_PKG_DIR = Path(__file__).resolve().parent
 from vuln_bank.auth import generate_token, token_required, verify_token, init_auth_routes
 import vuln_bank.auth as auth
 from werkzeug.utils import secure_filename
@@ -36,8 +36,8 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(
     __name__,
-    template_folder=str(_PROJECT_ROOT / "templates"),
-    static_folder=str(_PROJECT_ROOT / "static"),
+    template_folder=str(_PKG_DIR / "templates"),
+    static_folder=str(_PKG_DIR / "static"),
 )
 CORS(app)
 
@@ -206,7 +206,7 @@ def ai_rate_limit(f):
 
     return decorated_function
 
-UPLOAD_FOLDER = str(_PROJECT_ROOT / "static" / "uploads")
+UPLOAD_FOLDER = str(_PKG_DIR / "static" / "uploads")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 

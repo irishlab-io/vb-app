@@ -11,19 +11,18 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Install dependencies only (no source code yet) — preserves Docker layer cache
 COPY pyproject.toml uv.lock ./
-# Install dependencies only (cached layer — rebuilds only when pyproject.toml/uv.lock change)
 RUN uv sync --frozen --no-dev --no-install-project
-
-# Copy source package and install it (separate layer for source changes)
-COPY src/ ./src/
-RUN uv sync --frozen --no-dev
 
 # Copy remaining project files
 COPY . .
 
-# Ensure uploads directory exists and has proper permissions
-RUN mkdir -p static/uploads && chmod 777 static/uploads
+# Install the project package and ensure uploads directory exists
+RUN uv sync --frozen --no-dev \
+    && mkdir -p src/vuln_bank/static/uploads \
+    && chmod 777 src/vuln_bank/static/uploads
+
 RUN chmod +x /app/start.sh
 
 EXPOSE 5000
