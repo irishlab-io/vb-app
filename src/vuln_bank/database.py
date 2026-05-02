@@ -3,6 +3,7 @@ import os
 import time
 
 import psycopg2
+import psycopg2.pool
 
 logger = logging.getLogger(__name__)
 
