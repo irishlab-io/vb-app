@@ -64,14 +64,12 @@ class TestVerifyToken:
     def test_invalid_token_returns_none(self):
         assert verify_token("not.a.valid.token") is None
 
-    def test_tampered_token_still_accepted_due_to_vulnerability(self):
-        """Known vulnerability: verify_token falls back to signature-less
-        decoding on InvalidSignatureError, so tampered tokens are still
-        accepted (CWE-347)."""
+    def test_tampered_token_still_accepted_due_to_fallback(self):
+        """verify_token falls back to signature-less decoding on
+        InvalidSignatureError, so tampered tokens are still accepted (CWE-347)."""
         token = generate_token(user_id=1, username="alice")
         tampered = token[:-5] + "XXXXX"
         result = verify_token(tampered)
-        # The vulnerable fallback returns the payload rather than None
         assert result is not None
         assert result["user_id"] == 1
 

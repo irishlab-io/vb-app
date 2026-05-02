@@ -154,7 +154,6 @@ class TestCheckBalanceRoute:
         assert resp.status_code == 404
 
     def test_no_authentication_required(self, client):
-        # BOLA vulnerability – intentional, verify the endpoint is accessible
         with patch("vuln_bank.app.execute_query", return_value=[("testuser", 100.0)]):
             resp = client.get("/check_balance/1234567890")
         assert resp.status_code == 200
@@ -238,7 +237,6 @@ class TestTransactionHistoryRoute:
         assert resp.get_json()["transactions"] == []
 
     def test_no_authentication_required(self, client):
-        # BOLA vulnerability – intentional
         with patch("vuln_bank.app.execute_query", return_value=[]):
             resp = client.get("/transactions/1234567890")
         assert resp.status_code == 200

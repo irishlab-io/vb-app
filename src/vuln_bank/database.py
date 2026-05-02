@@ -23,8 +23,7 @@ connection_pool = None
 
 def init_connection_pool(min_connections=2, max_connections=30, max_retries=5, retry_delay=2):
     """
-    Initialize the database connection pool with retry mechanism
-    Vulnerability: No connection encryption enforced
+    Initialize the database connection pool with retry mechanism.
     """
     global connection_pool
     if connection_pool is not None:
@@ -88,13 +87,13 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
                     username TEXT NOT NULL UNIQUE,
-                    password TEXT NOT NULL,  -- Vulnerability: Passwords stored in plaintext
+                    password TEXT NOT NULL,
                     account_number TEXT NOT NULL UNIQUE,
                     balance DECIMAL(15, 2) DEFAULT 1000.0,
                     is_admin BOOLEAN DEFAULT FALSE,
                     profile_picture TEXT,
-                    reset_pin TEXT,  -- Vulnerability: Reset PINs stored in plaintext
-                    bio TEXT,  -- Vulnerability: Stored XSS - User bio without sanitization
+                    reset_pin TEXT,
+                    bio TEXT,
                     is_suspended BOOLEAN DEFAULT FALSE
                 )
             """)
@@ -138,8 +137,8 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS virtual_cards (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                    card_number TEXT NOT NULL UNIQUE,  -- Vulnerability: Card numbers stored in plaintext
-                    cvv TEXT NOT NULL,  -- Vulnerability: CVV stored in plaintext
+                    card_number TEXT NOT NULL UNIQUE,
+                    cvv TEXT NOT NULL,
                     expiry_date TEXT NOT NULL,
                     card_limit NUMERIC(20, 8) DEFAULT 1000.0,
                     current_balance NUMERIC(20, 8) DEFAULT 0.0,
@@ -147,7 +146,7 @@ def init_db():
                     is_active BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_used_at TIMESTAMP,
-                    card_type TEXT DEFAULT 'standard',  -- Vulnerability: No validation on card type
+                    card_type TEXT DEFAULT 'standard',
                     currency TEXT DEFAULT 'USD'
                 )
             """)
@@ -158,7 +157,7 @@ def init_db():
                     id SERIAL PRIMARY KEY,
                     card_id INTEGER REFERENCES virtual_cards(id) ON DELETE CASCADE,
                     amount NUMERIC(20, 8) NOT NULL,
-                    merchant_name TEXT,  -- Vulnerability: No input validation
+                    merchant_name TEXT,
                     transaction_type TEXT NOT NULL,
                     status TEXT DEFAULT 'pending',
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -205,10 +204,10 @@ def init_db():
                     id SERIAL PRIMARY KEY,
                     category_id INTEGER REFERENCES bill_categories(id),
                     name TEXT NOT NULL,
-                    account_number TEXT NOT NULL,  -- Vulnerability: No encryption
+                    account_number TEXT NOT NULL,
                     description TEXT,
                     minimum_amount DECIMAL(15, 2) DEFAULT 0,
-                    maximum_amount DECIMAL(15, 2),  -- Vulnerability: No validation
+                    maximum_amount DECIMAL(15, 2),
                     is_active BOOLEAN DEFAULT TRUE
                 )
             """)
@@ -222,7 +221,7 @@ def init_db():
                     amount DECIMAL(15, 2) NOT NULL,
                     payment_method TEXT NOT NULL,  -- 'balance' or 'virtual_card'
                     card_id INTEGER REFERENCES virtual_cards(id),  -- NULL if paid with balance
-                    reference_number TEXT,  -- Vulnerability: No unique constraint
+                    reference_number TEXT,
                     status TEXT DEFAULT 'pending',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     processed_at TIMESTAMP,
@@ -258,7 +257,6 @@ def init_db():
             logger.info("Database initialized successfully")
 
     except Exception as e:
-        # Vulnerability: Detailed error information exposed
         logger.error("Error initializing database: %s", e)
         conn.rollback()
         raise e
@@ -268,8 +266,7 @@ def init_db():
 
 def execute_query(query, params=None, fetch=True):
     """
-    Execute a database query
-    Vulnerability: This function still allows for SQL injection if called with string formatting
+    Execute a database query.
     """
     conn = get_connection()
     try:
@@ -283,7 +280,6 @@ def execute_query(query, params=None, fetch=True):
                 conn.commit()
             return result
     except Exception as e:
-        # Vulnerability: Error details might be exposed to users
         conn.rollback()
         raise e
     finally:
@@ -292,8 +288,7 @@ def execute_query(query, params=None, fetch=True):
 
 def execute_transaction(queries_and_params):
     """
-    Execute multiple queries in a transaction
-    Vulnerability: No input validation on queries
+    Execute multiple queries in a transaction.
     queries_and_params: list of tuples (query, params)
     """
     conn = get_connection()
@@ -303,7 +298,6 @@ def execute_transaction(queries_and_params):
                 cursor.execute(query, params)
             conn.commit()
     except Exception as e:
-        # Vulnerability: Transaction rollback exposed
         conn.rollback()
         raise e
     finally:

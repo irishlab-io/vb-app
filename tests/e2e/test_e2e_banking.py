@@ -122,7 +122,7 @@ class TestNewUserBankingJourney:
         assert dash.status_code == 200
 
     def test_check_balance_by_account_number(self, e2e_client):
-        """Unauthenticated balance check via account number (IDOR)."""
+        """Unauthenticated balance check via account number."""
         account_row = ("9000000001", 5000.0)
         with patch("vuln_bank.app.execute_query", return_value=[account_row]):
             resp = e2e_client.get("/check_balance/9000000001")

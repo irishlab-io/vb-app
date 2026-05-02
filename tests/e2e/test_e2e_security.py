@@ -1,9 +1,8 @@
 """
-E2e security-vulnerability tests.
+E2e security tests.
 
-Each test class exercises a documented vulnerability end-to-end through
-the full Flask request pipeline, verifying both the exploit path and (where
-applicable) the existence of the weakness in the running application.
+Each test class exercises a security behaviour end-to-end through
+the full Flask request pipeline.
 """
 
 from unittest.mock import patch
@@ -63,9 +62,9 @@ class TestAuthenticationBoundaries:
 # ===========================================================================
 
 
-class TestJwtAlgorithmConfusionVulnerability:
+class TestJwtAlgorithmConfusion:
     """
-    Documents CWE-347: the application's verify_token() falls back to
+    CWE-347: the application's verify_token() falls back to
     verify_signature=False when it catches an InvalidSignatureError, meaning
     a token signed with 'none' or a wrong key is still accepted.
     """
@@ -114,9 +113,9 @@ class TestJwtAlgorithmConfusionVulnerability:
 # ===========================================================================
 
 
-class TestIdorVulnerability:
+class TestBrokenObjectLevelAuthorization:
     """
-    Documents OWASP API3:2023 – Broken Object Level Authorization.
+    OWASP API3:2023 – Broken Object Level Authorization.
     Any authenticated user can retrieve any other user's profile data
     via /api/v3/user/<id> without ownership checks.
     """
@@ -126,22 +125,21 @@ class TestIdorVulnerability:
             resp = e2e_client.get("/api/v3/user/10", headers=user_auth_headers)
         assert resp.status_code == 200
 
-    def test_user_can_read_another_users_profile_idor(
+    def test_user_can_read_another_users_profile(
         self, e2e_client, user_auth_headers
     ):
         """
         user_auth_headers authenticates as user_id=2 (testuser).
-        Requesting user_id=3 (another user) succeeds – IDOR vulnerability.
+        Requesting user_id=3 (another user) succeeds.
         """
         with patch("vuln_bank.app.execute_query", return_value=[E2E_USER2]):
             resp = e2e_client.get("/api/v3/user/11", headers=user_auth_headers)
         assert resp.status_code == 200
 
-    def test_user_can_read_admin_profile_idor(self, e2e_client, user_auth_headers):
+    def test_user_can_read_admin_profile(self, e2e_client, user_auth_headers):
         """Regular user should NOT be able to see admin profile – but can."""
         with patch("vuln_bank.app.execute_query", return_value=[E2E_ADMIN]):
             resp = e2e_client.get("/api/v3/user/1", headers=user_auth_headers)
-        # Documents intentional vulnerability: admin profile exposed
         assert resp.status_code == 200
 
     def test_unauthenticated_access_returns_401(self, e2e_client):

@@ -149,7 +149,7 @@ class TestAdminAccountDeletion:
         self, e2e_client, admin_auth_headers
     ):
         # The route issues DELETE unconditionally and always returns 200;
-        # no row-count check → missing user is not detected (vulnerability).
+        # no row-count check means missing users are not detected.
         with patch("vuln_bank.app.execute_query", return_value=[]):
             resp = e2e_client.post(
                 "/admin/delete_account/9999",
@@ -185,7 +185,7 @@ class TestAdminPromotion:
         self, e2e_client, admin_auth_headers
     ):
         # The route performs a raw INSERT without checking if the user
-        # exists first (SQL-injection vulnerable); it always returns 200.
+        # exists first; it always returns 200.
         with patch("vuln_bank.app.execute_query", return_value=[]):
             resp = e2e_client.post(
                 "/admin/create_admin",

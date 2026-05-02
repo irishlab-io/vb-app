@@ -674,7 +674,7 @@ class TestRateLimitingFlow:
 
 
 class TestIdorFlow:
-    """Demonstrates IDOR vulnerability on /api/v3/user/<id>."""
+    """Any authenticated user can fetch any other user's profile via /api/v3/user/<id>."""
 
     def test_user_can_fetch_own_profile(self, client, user_auth_headers):
         with patch("vuln_bank.app.execute_query", return_value=[_USER]):
@@ -683,7 +683,6 @@ class TestIdorFlow:
         assert resp.get_json()["user"]["username"] == "alice"
 
     def test_user_can_fetch_other_users_profile_idor(self, client, user_auth_headers):
-        # alice (user_id=2) fetching bob (user_id=3) — IDOR vulnerability
         with patch("vuln_bank.app.execute_query", return_value=[_USER2]):
             resp = client.get("/api/v3/user/3", headers=user_auth_headers)
         assert resp.status_code == 200
