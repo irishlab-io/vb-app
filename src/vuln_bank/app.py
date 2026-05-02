@@ -17,7 +17,7 @@ from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from werkzeug.utils import secure_filename
 
-from vuln_bank import auth
+from vuln_bank import auth, site_config
 from vuln_bank.ai_agent_ollama import ai_agent
 from vuln_bank.auth import (
     generate_token,
@@ -48,6 +48,25 @@ app = Flask(
 CORS(app)
 
 logger = logging.getLogger(__name__)
+
+
+@app.context_processor
+def inject_site_config():
+    """Inject site configuration into all Jinja2 templates."""
+    return {
+        "site": {
+            "author_name": site_config.AUTHOR_NAME,
+            "author_github_handle": site_config.AUTHOR_GITHUB_HANDLE,
+            "author_github_url": site_config.AUTHOR_GITHUB_URL,
+            "author_linkedin_url": site_config.AUTHOR_LINKEDIN_URL,
+            "author_blog_url": site_config.AUTHOR_BLOG_URL,
+            "repo_github_url": site_config.REPO_GITHUB_URL,
+            "repo_mobile_github_url": site_config.REPO_MOBILE_GITHUB_URL,
+            "original_author_name": site_config.ORIGINAL_AUTHOR_NAME,
+            "original_author_github_url": site_config.ORIGINAL_AUTHOR_GITHUB_URL,
+        }
+    }
+
 
 # Initialize database connection pool
 init_connection_pool()

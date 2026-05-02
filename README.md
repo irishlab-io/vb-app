@@ -47,7 +47,7 @@ For detailed installation instructions, including local setup, environment confi
 
 ## Attribution
 
-This project was originally created by [Commando-X](https://github.com/Commando-X) and he still maintains it. Although I required to improve and evolve this project faster than it was possible for us to collaborate. Eventually I will attempt to merge my improvement toward his repository.
+This project was originally created by [Al-Amir Badmus (Commando-X)](https://github.com/Commando-X). It has since been forked and evolved by [Simon Harvey (irish1986)](https://github.com/irish1986). You can follow the project's progress on [irishlab.io](https://www.irishlab.io).
 
 ## Disclaimer
 
