@@ -21,7 +21,7 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from werkzeug.utils import secure_filename
 
 from vuln_bank import auth
-from vuln_bank.ai_agent_deepseek import ai_agent
+from vuln_bank.ai_agent_ollama import ai_agent
 from vuln_bank.auth import (
     generate_token,
     init_auth_routes,
