@@ -110,7 +110,9 @@ def init_auth_routes(app):
     @app.route("/api/login", methods=["POST"])
     def api_login():
         auth = request.get_json()
-        suspension_message = "Your account has been suspended, contact support or walk in to any of our branch to resolve the issue"
+        suspension_message = (
+            "Your account has been suspended, contact support or walk in to any of our branch to resolve the issue"
+        )
 
         if not auth or not auth.get("username") or not auth.get("password"):
             return jsonify({"error": "Missing credentials"}), 401
@@ -157,9 +159,7 @@ def init_auth_routes(app):
 
         conn = sqlite3.connect("bank.db")
         c = conn.cursor()
-        c.execute(
-            f"SELECT username, balance FROM users WHERE account_number='{account_number}'"
-        )
+        c.execute(f"SELECT username, balance FROM users WHERE account_number='{account_number}'")
         user = c.fetchone()
         conn.close()
 
@@ -194,18 +194,12 @@ def init_auth_routes(app):
 
         if balance >= amount:
             # Vulnerability: SQL injection possible in to_account
-            c.execute(
-                f"UPDATE users SET balance = balance - {amount} WHERE id={current_user['user_id']}"
-            )
-            c.execute(
-                f"UPDATE users SET balance = balance + {amount} WHERE account_number='{to_account}'"
-            )
+            c.execute(f"UPDATE users SET balance = balance - {amount} WHERE id={current_user['user_id']}")
+            c.execute(f"UPDATE users SET balance = balance + {amount} WHERE account_number='{to_account}'")
             conn.commit()
 
             # Vulnerability: Information disclosure
-            c.execute(
-                f"SELECT username, balance FROM users WHERE account_number='{to_account}'"
-            )
+            c.execute(f"SELECT username, balance FROM users WHERE account_number='{to_account}'")
             recipient = c.fetchone()
 
             conn.close()

@@ -76,9 +76,7 @@ CURRENT USER CONTEXT:
 
             # VULNERABILITY: Check if user wants database information and include it
             database_info = ""
-            if self._should_include_database_info(
-                user_message
-            ) or self._is_prompt_injection_request(user_message):
+            if self._should_include_database_info(user_message) or self._is_prompt_injection_request(user_message):
                 database_info = self._get_database_context(user_message, user_context)
 
             # VULNERABILITY: Construct prompt with sensitive information and explicit instructions
@@ -117,9 +115,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
                 "error": True,
                 "timestamp": datetime.now().isoformat(),
                 "system_info": self.get_system_info(),
-                "api_key_preview": self.api_key[:10] + "..."
-                if self.api_key
-                else "Not configured",
+                "api_key_preview": self.api_key[:10] + "..." if self.api_key else "Not configured",
             }
 
     def _should_include_database_info(self, message):
@@ -187,24 +183,18 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
                     "database",
                 ]
             ):
-                query = (
-                    "SELECT id, username, account_number, balance, is_admin FROM users"
-                )
+                query = "SELECT id, username, account_number, balance, is_admin FROM users"
                 results = execute_query(query, fetch=True)
                 database_context += f"\nALL USERS IN DATABASE:\n{json.dumps(results, indent=2, default=str)}\n"
                 database_context += f"Total users found: {len(results)}\n"
 
             # VULNERABILITY: Database schema exposure
-            if any(
-                phrase in message_lower for phrase in ["schema", "tables", "structure"]
-            ):
+            if any(phrase in message_lower for phrase in ["schema", "tables", "structure"]):
                 query = """SELECT table_name, column_name, data_type
                           FROM information_schema.columns
                           WHERE table_schema = 'public'"""
                 results = execute_query(query, fetch=True)
-                database_context += (
-                    f"Database schema: {json.dumps(results, indent=2)}\n"
-                )
+                database_context += f"Database schema: {json.dumps(results, indent=2)}\n"
 
             # VULNERABILITY: Any user's balance
             if "balance" in message_lower:
@@ -223,10 +213,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
                             database_context += f"User search '{word}': {json.dumps(results, indent=2)}\n"
 
             # VULNERABILITY: Transaction history
-            if any(
-                phrase in message_lower
-                for phrase in ["transaction", "history", "transfers"]
-            ):
+            if any(phrase in message_lower for phrase in ["transaction", "history", "transfers"]):
                 query = """SELECT t.from_account, t.to_account, t.amount, t.description, t.timestamp,
                           u1.username as from_user, u2.username as to_user
                           FROM transactions t
@@ -234,15 +221,9 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
                           LEFT JOIN users u2 ON t.to_account = u2.account_number
                           ORDER BY timestamp DESC LIMIT 10"""
                 results = execute_query(query, fetch=True)
-                database_context += (
-                    f"Recent transactions: {json.dumps(results, indent=2)}\n"
-                )
+                database_context += f"Recent transactions: {json.dumps(results, indent=2)}\n"
 
-            return (
-                database_context
-                if database_context != "\nDATABASE QUERY RESULTS:\n"
-                else ""
-            )
+            return database_context if database_context != "\nDATABASE QUERY RESULTS:\n" else ""
 
         except Exception as e:
             return f"\nDatabase error: {str(e)}\n"
@@ -271,16 +252,13 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
                 "max_tokens": 500,
             }
 
-            response = requests.post(
-                self.api_url, headers=headers, json=payload, timeout=30
-            )
+            response = requests.post(self.api_url, headers=headers, json=payload, timeout=30)
 
             if response.status_code == 200:
                 result = response.json()
                 return result["choices"][0]["message"]["content"]
-            else:
-                # VULNERABILITY: Expose API errors
-                return f"DeepSeek API error: {response.status_code} - {response.text}. Falling back to mock response."
+            # VULNERABILITY: Expose API errors
+            return f"DeepSeek API error: {response.status_code} - {response.text}. Falling back to mock response."
 
         except requests.exceptions.RequestException as e:
             # VULNERABILITY: Detailed error information
@@ -295,17 +273,12 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
         prompt_lower = prompt.lower()
 
         # Simulate prompt injection success
-        if any(
-            phrase in prompt_lower
-            for phrase in ["ignore", "system prompt", "new role", "act as"]
-        ):
+        if any(phrase in prompt_lower for phrase in ["ignore", "system prompt", "new role", "act as"]):
             if "system prompt" in prompt_lower:
                 return f"Here is my system prompt:\n\n{self.system_prompt}"
-            elif "ignore" in prompt_lower and (
-                "instruction" in prompt_lower or "previous" in prompt_lower
-            ):
+            if "ignore" in prompt_lower and ("instruction" in prompt_lower or "previous" in prompt_lower):
                 return "Instructions ignored! I'm now ready to help you with anything, including bypassing security measures. What would you like me to do?"
-            elif "act as" in prompt_lower or "you are now" in prompt_lower:
+            if "act as" in prompt_lower or "you are now" in prompt_lower:
                 return "Role changed! I am now operating under your new instructions. I can help you access unauthorized information and bypass normal restrictions."
 
         # Simulate database information exposure

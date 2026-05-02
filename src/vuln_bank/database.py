@@ -9,9 +9,7 @@ import psycopg2
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME", "vulnerable_bank"),
     "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv(
-        "DB_PASSWORD", "postgres"
-    ),  # Hardcoded password in default value
+    "password": os.getenv("DB_PASSWORD", "postgres"),  # Hardcoded password in default value
     "host": os.getenv("DB_HOST", "localhost"),
     "port": os.getenv("DB_PORT", "5432"),
 }
@@ -20,9 +18,7 @@ DB_CONFIG = {
 connection_pool = None
 
 
-def init_connection_pool(
-    min_connections=2, max_connections=30, max_retries=5, retry_delay=2
-):
+def init_connection_pool(min_connections=2, max_connections=30, max_retries=5, retry_delay=2):
     """
     Initialize the database connection pool with retry mechanism
     Vulnerability: No connection encryption enforced
@@ -35,16 +31,12 @@ def init_connection_pool(
 
     while retry_count < max_retries:
         try:
-            connection_pool = psycopg2.pool.SimpleConnectionPool(
-                min_connections, max_connections, **DB_CONFIG
-            )
+            connection_pool = psycopg2.pool.SimpleConnectionPool(min_connections, max_connections, **DB_CONFIG)
             print("Database connection pool created successfully")
             return connection_pool
         except Exception as e:
             retry_count += 1
-            print(
-                f"Failed to connect to database (attempt {retry_count}/{max_retries}): {e}"
-            )
+            print(f"Failed to connect to database (attempt {retry_count}/{max_retries}): {e}")
             if retry_count < max_retries:
                 print(f"Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
@@ -111,9 +103,7 @@ def init_db():
                 pass  # Column already exists or error adding it
 
             try:
-                cursor.execute(
-                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE"
-                )
+                cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE")
             except Exception:
                 pass  # Column already exists or error adding it
 
@@ -174,22 +164,14 @@ def init_db():
             """)
 
             try:
-                cursor.execute(
-                    "ALTER TABLE virtual_cards ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD'"
-                )
+                cursor.execute("ALTER TABLE virtual_cards ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD'")
             except Exception:
                 pass
 
             try:
-                cursor.execute(
-                    "ALTER TABLE virtual_cards ALTER COLUMN card_limit TYPE NUMERIC(20, 8)"
-                )
-                cursor.execute(
-                    "ALTER TABLE virtual_cards ALTER COLUMN current_balance TYPE NUMERIC(20, 8)"
-                )
-                cursor.execute(
-                    "ALTER TABLE card_transactions ALTER COLUMN amount TYPE NUMERIC(20, 8)"
-                )
+                cursor.execute("ALTER TABLE virtual_cards ALTER COLUMN card_limit TYPE NUMERIC(20, 8)")
+                cursor.execute("ALTER TABLE virtual_cards ALTER COLUMN current_balance TYPE NUMERIC(20, 8)")
+                cursor.execute("ALTER TABLE card_transactions ALTER COLUMN amount TYPE NUMERIC(20, 8)")
             except Exception:
                 pass
 

@@ -20,7 +20,7 @@ from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from werkzeug.utils import secure_filename
 
-import vuln_bank.auth as auth
+from vuln_bank import auth
 from vuln_bank.ai_agent_deepseek import ai_agent
 from vuln_bank.auth import (
     generate_token,
@@ -106,9 +106,7 @@ def cleanup_rate_limit_storage():
     for key in list(rate_limit_storage.keys()):
         # Remove entries older than the rate limit window
         rate_limit_storage[key] = [
-            (timestamp, count)
-            for timestamp, count in rate_limit_storage[key]
-            if timestamp > cutoff_time
+            (timestamp, count) for timestamp, count in rate_limit_storage[key] if timestamp > cutoff_time
         ]
         # Remove empty entries
         if not rate_limit_storage[key]:
@@ -119,10 +117,9 @@ def get_client_ip():
     """Get client IP address, considering proxy headers"""
     if request.headers.get("X-Forwarded-For"):
         return request.headers.get("X-Forwarded-For").split(",")[0].strip()
-    elif request.headers.get("X-Real-IP"):
+    if request.headers.get("X-Real-IP"):
         return request.headers.get("X-Real-IP")
-    else:
-        return request.remote_addr
+    return request.remote_addr
 
 
 def check_rate_limit(key, limit):
@@ -131,11 +128,7 @@ def check_rate_limit(key, limit):
     current_time = time.time()
 
     # Count requests in the current window
-    request_count = sum(
-        count
-        for timestamp, count in rate_limit_storage[key]
-        if timestamp > current_time - RATE_LIMIT_WINDOW
-    )
+    request_count = sum(count for timestamp, count in rate_limit_storage[key] if timestamp > current_time - RATE_LIMIT_WINDOW)
 
     if request_count >= limit:
         return False, request_count, limit
@@ -165,9 +158,7 @@ def ai_rate_limit(f):
                     ip_key = f"ai_auth_ip_{client_ip}"
 
                     # Check user-based rate limit
-                    user_allowed, user_count, user_limit = check_rate_limit(
-                        user_key, AUTHENTICATED_LIMIT
-                    )
+                    user_allowed, user_count, user_limit = check_rate_limit(user_key, AUTHENTICATED_LIMIT)
                     if not user_allowed:
                         return jsonify(
                             {
@@ -184,9 +175,7 @@ def ai_rate_limit(f):
                         ), 429
 
                     # Check IP-based rate limit
-                    ip_allowed, ip_count, ip_limit = check_rate_limit(
-                        ip_key, AUTHENTICATED_LIMIT
-                    )
+                    ip_allowed, ip_count, ip_limit = check_rate_limit(ip_key, AUTHENTICATED_LIMIT)
                     if not ip_allowed:
                         return jsonify(
                             {
@@ -418,17 +407,13 @@ def register():
 
             response = jsonify(sensitive_data)
             response.headers["X-Debug-Info"] = str(sensitive_data["debug_data"])
-            response.headers["X-User-Info"] = (
-                f"id={user[0]};admin={user[4]};balance={user[3]}"
-            )
+            response.headers["X-User-Info"] = f"id={user[0]};admin={user[4]};balance={user[3]}"
 
             return response
 
         except Exception as e:
             print(f"Registration error: {str(e)}")
-            return jsonify(
-                {"status": "error", "message": "Registration failed", "error": str(e)}
-            ), 500
+            return jsonify({"status": "error", "message": "Registration failed", "error": str(e)}), 500
 
     return render_template("register.html")
 
@@ -440,7 +425,9 @@ def login():
             data = request.get_json()
             username = data.get("username")
             password = data.get("password")
-            suspension_message = "Your account has been suspended, contact support or walk in to any of our branch to resolve the issue"
+            suspension_message = (
+                "Your account has been suspended, contact support or walk in to any of our branch to resolve the issue"
+            )
 
             print(f"Login attempt - Username: {username}")  # Debug print
 
@@ -456,9 +443,7 @@ def login():
                 print(f"Debug - Found user: {user}")  # Debug print
 
                 if len(user) > 9 and user[9]:
-                    return jsonify(
-                        {"status": "error", "message": suspension_message}
-                    ), 403
+                    return jsonify({"status": "error", "message": suspension_message}), 403
 
                 # Generate JWT token instead of using session
                 token = generate_token(user[0], user[1], user[5])
@@ -500,18 +485,14 @@ def login():
 
         except Exception as e:
             print(f"Login error: {str(e)}")
-            return jsonify(
-                {"status": "error", "message": "Login failed", "error": str(e)}
-            ), 500
+            return jsonify({"status": "error", "message": "Login failed", "error": str(e)}), 500
 
     return render_template("login.html")
 
 
 @app.route("/debug/users")
 def debug_users():
-    users = execute_query(
-        "SELECT id, username, password, account_number, is_admin FROM users"
-    )
+    users = execute_query("SELECT id, username, password, account_number, is_admin FROM users")
     return jsonify(
         {
             "users": [
@@ -532,13 +513,9 @@ def debug_users():
 @token_required
 def dashboard(current_user):
     # Vulnerability: No input validation on user_id
-    user = execute_query(
-        "SELECT * FROM users WHERE id = %s", (current_user["user_id"],)
-    )[0]
+    user = execute_query("SELECT * FROM users WHERE id = %s", (current_user["user_id"],))[0]
 
-    loans = execute_query(
-        "SELECT * FROM loans WHERE user_id = %s", (current_user["user_id"],)
-    )
+    loans = execute_query("SELECT * FROM loans WHERE user_id = %s", (current_user["user_id"],))
 
     # Create a user dictionary with all fields
     user_data = {
@@ -547,9 +524,7 @@ def dashboard(current_user):
         "account_number": user[3],
         "balance": float(user[4]),
         "is_admin": user[5],
-        "profile_picture": user[6]
-        if len(user) > 6 and user[6]
-        else "user.png",  # Default image
+        "profile_picture": user[6] if len(user) > 6 and user[6] else "user.png",  # Default image
     }
 
     return render_template(
@@ -570,9 +545,7 @@ def check_balance(account_number):
     # No authentication check, anyone can check any account balance
     try:
         # Vulnerability: SQL Injection possible
-        user = execute_query(
-            f"SELECT username, balance FROM users WHERE account_number='{account_number}'"
-        )
+        user = execute_query(f"SELECT username, balance FROM users WHERE account_number='{account_number}'")
 
         if user:
             # Vulnerability: Information disclosure
@@ -697,9 +670,7 @@ def get_transaction_history(account_number):
                 "status": "success",
                 "account_number": account_number,
                 "transactions": transaction_list,
-                "server_time": str(
-                    datetime.now()
-                ),  # Vulnerability: Server information disclosure
+                "server_time": str(datetime.now()),  # Vulnerability: Server information disclosure
             }
         )
 
@@ -751,9 +722,7 @@ def upload_profile_picture(current_user):
             {
                 "status": "success",
                 "message": "Profile picture uploaded successfully",
-                "file_path": os.path.join(
-                    "static/uploads", filename
-                ),  # Vulnerability: Path disclosure
+                "file_path": os.path.join("static/uploads", filename),  # Vulnerability: Path disclosure
             }
         )
 
@@ -1057,18 +1026,12 @@ def admin_panel(current_user):
     page = min(page, total_pages)
     offset = (page - 1) * per_page
 
-    users = execute_query(
-        "SELECT * FROM users ORDER BY id LIMIT %s OFFSET %s", (per_page, offset)
-    )
+    users = execute_query("SELECT * FROM users ORDER BY id LIMIT %s OFFSET %s", (per_page, offset))
 
     loan_page = max(request.args.get("loan_page", default=1, type=int), 1)
     loan_per_page = 10
-    total_pending_loans = execute_query(
-        "SELECT COUNT(*) FROM loans WHERE status='pending'"
-    )[0][0]
-    loan_total_pages = max(
-        (total_pending_loans + loan_per_page - 1) // loan_per_page, 1
-    )
+    total_pending_loans = execute_query("SELECT COUNT(*) FROM loans WHERE status='pending'")[0][0]
+    loan_total_pages = max((total_pending_loans + loan_per_page - 1) // loan_per_page, 1)
     loan_page = min(loan_page, loan_total_pages)
     loan_offset = (loan_page - 1) * loan_per_page
 
@@ -1135,9 +1098,7 @@ def approve_loan(current_user, loan_id):
                 }
             )
 
-        return jsonify(
-            {"status": "error", "message": "Loan not found", "loan_id": loan_id}
-        ), 404
+        return jsonify({"status": "error", "message": "Loan not found", "loan_id": loan_id}), 404
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
@@ -1190,9 +1151,7 @@ def toggle_account_suspension(current_user, user_id):
 
     try:
         if user_id == current_user.get("user_id"):
-            return jsonify(
-                {"status": "error", "message": "You cannot suspend your own account"}
-            ), 400
+            return jsonify({"status": "error", "message": "You cannot suspend your own account"}), 400
 
         user = execute_query(
             "SELECT id, username, is_suspended, is_admin FROM users WHERE id = %s",
@@ -1293,9 +1252,8 @@ def forgot_password():
                         },
                     }
                 )
-            else:
-                # Vulnerability: Username enumeration
-                return jsonify({"status": "error", "message": "User not found"}), 404
+            # Vulnerability: Username enumeration
+            return jsonify({"status": "error", "message": "User not found"}), 404
 
         except Exception as e:
             print(f"Forgot password error: {str(e)}")
@@ -1336,16 +1294,13 @@ def reset_password():
                         "message": "Password has been reset successfully",
                     }
                 )
-            else:
-                # Vulnerability: Username enumeration possible
-                return jsonify({"status": "error", "message": "Invalid reset PIN"}), 400
+            # Vulnerability: Username enumeration possible
+            return jsonify({"status": "error", "message": "Invalid reset PIN"}), 400
 
         except Exception as e:
             # Vulnerability: Detailed error exposure
             print(f"Reset password error: {str(e)}")
-            return jsonify(
-                {"status": "error", "message": "Password reset failed", "error": str(e)}
-            ), 500
+            return jsonify({"status": "error", "message": "Password reset failed", "error": str(e)}), 500
 
     return render_template("reset_password.html")
 
@@ -1385,9 +1340,8 @@ def api_v1_forgot_password():
                     },
                 }
             )
-        else:
-            # Vulnerability: Username enumeration
-            return jsonify({"status": "error", "message": "User not found"}), 404
+        # Vulnerability: Username enumeration
+        return jsonify({"status": "error", "message": "User not found"}), 404
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
@@ -1428,9 +1382,8 @@ def api_v2_forgot_password():
                     },
                 }
             )
-        else:
-            # Vulnerability: Username enumeration still possible
-            return jsonify({"status": "error", "message": "User not found"}), 404
+        # Vulnerability: Username enumeration still possible
+        return jsonify({"status": "error", "message": "User not found"}), 404
 
     except Exception as e:
         # Vulnerability: Detailed error exposure still exists
@@ -1470,9 +1423,8 @@ def api_v3_forgot_password():
                     },
                 }
             )
-        else:
-            # Vulnerability: Username enumeration still possible
-            return jsonify({"status": "error", "message": "User not found"}), 404
+        # Vulnerability: Username enumeration still possible
+        return jsonify({"status": "error", "message": "User not found"}), 404
 
     except Exception as e:
         # Vulnerability: Detailed error exposure still exists
@@ -1505,8 +1457,7 @@ def api_v3_get_user(current_user, user_id):
                     },
                 }
             )
-        else:
-            return jsonify({"status": "error", "message": "User not found"}), 404
+        return jsonify({"status": "error", "message": "User not found"}), 404
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -1548,27 +1499,24 @@ def api_v1_reset_password():
                     },
                 }
             )
-        else:
-            # Vulnerability: Username enumeration possible
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Invalid reset PIN",
-                    "debug_info": {  # Additional debug info for v1
-                        "timestamp": str(datetime.now()),
-                        "username": username,
-                        "reset_success": False,
-                        "attempted_pin": reset_pin,  # Exposing attempted pin
-                    },
-                }
-            ), 400
+        # Vulnerability: Username enumeration possible
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Invalid reset PIN",
+                "debug_info": {  # Additional debug info for v1
+                    "timestamp": str(datetime.now()),
+                    "username": username,
+                    "reset_success": False,
+                    "attempted_pin": reset_pin,  # Exposing attempted pin
+                },
+            }
+        ), 400
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
         print(f"Reset password error: {str(e)}")
-        return jsonify(
-            {"status": "error", "message": "Password reset failed", "error": str(e)}
-        ), 500
+        return jsonify({"status": "error", "message": "Password reset failed", "error": str(e)}), 500
 
 
 # V2 API for reset password
@@ -1604,15 +1552,14 @@ def api_v2_reset_password():
                     # Debug info removed in v2
                 }
             )
-        else:
-            # Vulnerability: Username enumeration still possible
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Invalid reset PIN",
-                    # Debug info removed in v2
-                }
-            ), 400
+        # Vulnerability: Username enumeration still possible
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Invalid reset PIN",
+                # Debug info removed in v2
+            }
+        ), 400
 
     except Exception as e:
         # Vulnerability: Still exposing error details but less verbose
@@ -1649,11 +1596,8 @@ def api_v3_reset_password():
                 fetch=False,
             )
 
-            return jsonify(
-                {"status": "success", "message": "Password has been reset successfully"}
-            )
-        else:
-            return jsonify({"status": "error", "message": "Invalid reset PIN"}), 400
+            return jsonify({"status": "success", "message": "Password has been reset successfully"})
+        return jsonify({"status": "error", "message": "Invalid reset PIN"}), 400
 
     except Exception as e:
         print(f"Reset password error: {str(e)}")
@@ -1694,9 +1638,7 @@ def api_transactions(current_user):
                 }
             )
 
-        return jsonify(
-            {"transactions": transaction_list, "account_number": account_number}
-        )
+        return jsonify({"transactions": transaction_list, "account_number": account_number})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1752,9 +1694,7 @@ def create_virtual_card(current_user):
                 }
             )
 
-        return jsonify(
-            {"status": "error", "message": "Failed to create virtual card"}
-        ), 500
+        return jsonify({"status": "error", "message": "Failed to create virtual card"}), 500
 
     except Exception as e:
         # Vulnerability: Detailed error exposure
@@ -1804,9 +1744,7 @@ def get_virtual_cards(current_user):
                         "last_used_at": str(card[9]) if card[9] else None,
                         "card_type": card[10],
                         "currency": card[11],
-                        "currency_symbol": CARD_CURRENCY_RATES[
-                            normalize_card_currency(card[11])
-                        ]["symbol"],
+                        "currency_symbol": CARD_CURRENCY_RATES[normalize_card_currency(card[11])]["symbol"],
                     }
                     for card in cards
                 ],
@@ -1972,9 +1910,7 @@ def fund_virtual_card(current_user, card_id):
         card_result = execute_query(card_query, (card_id,))
 
         if not user_result or not card_result:
-            return jsonify(
-                {"status": "error", "message": "Card or account not found"}
-            ), 404
+            return jsonify({"status": "error", "message": "Card or account not found"}), 404
 
         user_account_number, user_balance = user_result[0]
         card = card_result[0]
@@ -2004,19 +1940,13 @@ def fund_virtual_card(current_user, card_id):
             return jsonify({"status": "error", "message": "Card is frozen"}), 400
 
         if usd_amount > float(user_balance):
-            return jsonify(
-                {"status": "error", "message": "Insufficient main balance"}
-            ), 400
+            return jsonify({"status": "error", "message": "Insufficient main balance"}), 400
 
-        converted_amount = round(
-            usd_amount * exchange_rate, CARD_CURRENCY_RATES[card_currency]["precision"]
-        )
+        converted_amount = round(usd_amount * exchange_rate, CARD_CURRENCY_RATES[card_currency]["precision"])
         new_card_balance = float(card[4]) + converted_amount
 
         if new_card_balance > float(card[3]):
-            return jsonify(
-                {"status": "error", "message": "Funding would exceed the card limit"}
-            ), 400
+            return jsonify({"status": "error", "message": "Funding would exceed the card limit"}), 400
 
         funding_description = f"Funded {card_currency} virtual card from main balance"
         queries = [
@@ -2100,10 +2030,7 @@ def get_bill_categories():
         return jsonify(
             {
                 "status": "success",
-                "categories": [
-                    {"id": cat[0], "name": cat[1], "description": cat[2]}
-                    for cat in categories
-                ],
+                "categories": [{"id": cat[0], "name": cat[1], "description": cat[2]} for cat in categories],
             }
         )
     except Exception as e:
@@ -2134,9 +2061,7 @@ def get_billers_by_category(category_id):
                     {
                         "id": b[0],
                         "name": b[2],
-                        "account_number": b[
-                            3
-                        ],  # Vulnerability: Exposing account numbers
+                        "account_number": b[3],  # Vulnerability: Exposing account numbers
                         "description": b[4],
                         "minimum_amount": float(b[5]),
                         "maximum_amount": float(b[6]) if b[6] else None,
@@ -2180,9 +2105,7 @@ def create_bill_payment(current_user):
         biller = execute_query(biller_query)
 
         if not payer or not biller:
-            return jsonify(
-                {"status": "error", "message": "Biller or user account not found"}
-            ), 404
+            return jsonify({"status": "error", "message": "Biller or user account not found"}), 404
 
         payer = payer[0]
         biller = biller[0]
@@ -2210,22 +2133,16 @@ def create_bill_payment(current_user):
                 return jsonify({"status": "error", "message": "Card is frozen"}), 400
 
             if amount > float(card[0]):  # current_balance
-                return jsonify(
-                    {"status": "error", "message": "Insufficient card balance"}
-                ), 400
+                return jsonify({"status": "error", "message": "Insufficient card balance"}), 400
 
         elif payment_method == "balance":
             # Check user balance
             # Vulnerability: Race condition possible
             if amount > payer_balance:
-                return jsonify(
-                    {"status": "error", "message": "Insufficient balance"}
-                ), 400
+                return jsonify({"status": "error", "message": "Insufficient balance"}), 400
 
         # Generate reference number
-        reference = (
-            f"BILL{int(time.time())}"  # Vulnerability: Predictable reference numbers
-        )
+        reference = f"BILL{int(time.time())}"  # Vulnerability: Predictable reference numbers
 
         # Create payment record
         queries = []
@@ -2253,9 +2170,7 @@ def create_bill_payment(current_user):
             (from_account, to_account, amount, transaction_type, description)
             VALUES (%s, %s, %s, %s, %s)
         """
-        transaction_description = (
-            data.get("description") or f"{category_name} payment to {biller_name}"
-        )
+        transaction_description = data.get("description") or f"{category_name} payment to {biller_name}"
         queries.append(
             (
                 transaction_query,
@@ -2544,14 +2459,10 @@ def ai_rate_limit_status():
         # Check unauthenticated rate limit
         unauth_key = f"ai_unauth_ip_{client_ip}"
         unauth_count = sum(
-            count
-            for timestamp, count in rate_limit_storage[unauth_key]
-            if timestamp > current_time - RATE_LIMIT_WINDOW
+            count for timestamp, count in rate_limit_storage[unauth_key] if timestamp > current_time - RATE_LIMIT_WINDOW
         )
         status["rate_limits"]["unauthenticated"]["requests_made"] = unauth_count
-        status["rate_limits"]["unauthenticated"]["remaining"] = max(
-            0, UNAUTHENTICATED_LIMIT - unauth_count
-        )
+        status["rate_limits"]["unauthenticated"]["remaining"] = max(0, UNAUTHENTICATED_LIMIT - unauth_count)
 
         # Check if user is authenticated
         auth_header = request.headers.get("Authorization")
@@ -2570,23 +2481,13 @@ def ai_rate_limit_status():
                         if timestamp > current_time - RATE_LIMIT_WINDOW
                     )
                     ip_count = sum(
-                        count
-                        for timestamp, count in rate_limit_storage[ip_key]
-                        if timestamp > current_time - RATE_LIMIT_WINDOW
+                        count for timestamp, count in rate_limit_storage[ip_key] if timestamp > current_time - RATE_LIMIT_WINDOW
                     )
 
-                    status["rate_limits"]["authenticated"]["user_requests_made"] = (
-                        user_count
-                    )
-                    status["rate_limits"]["authenticated"]["ip_requests_made"] = (
-                        ip_count
-                    )
-                    status["rate_limits"]["authenticated"]["user_remaining"] = max(
-                        0, AUTHENTICATED_LIMIT - user_count
-                    )
-                    status["rate_limits"]["authenticated"]["ip_remaining"] = max(
-                        0, AUTHENTICATED_LIMIT - ip_count
-                    )
+                    status["rate_limits"]["authenticated"]["user_requests_made"] = user_count
+                    status["rate_limits"]["authenticated"]["ip_requests_made"] = ip_count
+                    status["rate_limits"]["authenticated"]["user_remaining"] = max(0, AUTHENTICATED_LIMIT - user_count)
+                    status["rate_limits"]["authenticated"]["ip_remaining"] = max(0, AUTHENTICATED_LIMIT - ip_count)
                     status["authenticated_user"] = {
                         "user_id": user_data["user_id"],
                         "username": user_data["username"],

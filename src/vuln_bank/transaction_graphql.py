@@ -43,9 +43,7 @@ class TransactionSummaryType(graphene.ObjectType):
 
 
 def _load_user_actor(user_id):
-    rows = execute_query(
-        f"SELECT id, username, account_number, is_admin FROM users WHERE id = {user_id}"
-    )
+    rows = execute_query(f"SELECT id, username, account_number, is_admin FROM users WHERE id = {user_id}")
 
     if not rows:
         raise GraphQLError("Authenticated user could not be loaded.")
@@ -75,9 +73,7 @@ def _resolve_scope(actor, requested_account_number):
 
 
 def _load_actor_by_account_number(account_number):
-    rows = execute_query(
-        f"SELECT id, username, account_number, is_admin FROM users WHERE account_number = '{account_number}'"
-    )
+    rows = execute_query(f"SELECT id, username, account_number, is_admin FROM users WHERE account_number = '{account_number}'")
     if not rows:
         return None
 
@@ -165,9 +161,7 @@ def _load_lending_and_bill_metrics(scoped_user_id):
     }
 
 
-def _build_transaction_summary(
-    rows, scoped_account_number, scope, scoped_user_id, limit
-):
+def _build_transaction_summary(rows, scoped_account_number, scope, scoped_user_id, limit):
     safe_limit = min(max(limit or 5, 1), 15)
     account_name_map = _load_account_name_map()
     finance_metrics = _load_lending_and_bill_metrics(scoped_user_id)
@@ -203,9 +197,7 @@ def _build_transaction_summary(
 
     recent_transactions = []
     for row in rows[:safe_limit]:
-        timestamp = (
-            row[4].isoformat(sep=" ") if hasattr(row[4], "isoformat") else str(row[4])
-        )
+        timestamp = row[4].isoformat(sep=" ") if hasattr(row[4], "isoformat") else str(row[4])
         recent_transactions.append(
             {
                 "id": row[0],
@@ -221,9 +213,7 @@ def _build_transaction_summary(
         )
 
     ordered_breakdown = []
-    for aggregate in sorted(
-        by_type.values(), key=lambda item: item["total_amount"], reverse=True
-    ):
+    for aggregate in sorted(by_type.values(), key=lambda item: item["total_amount"], reverse=True):
         ordered_breakdown.append(
             {
                 "transaction_type": aggregate["transaction_type"],
@@ -264,13 +254,9 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Authentication required.")
 
         actor = _load_user_actor(current_user["user_id"])
-        scoped_account_number, scope, scoped_user_id = _resolve_scope(
-            actor, account_number
-        )
+        scoped_account_number, scope, scoped_user_id = _resolve_scope(actor, account_number)
         rows = _load_transactions(scoped_account_number)
-        return _build_transaction_summary(
-            rows, scoped_account_number, scope, scoped_user_id, limit
-        )
+        return _build_transaction_summary(rows, scoped_account_number, scope, scoped_user_id, limit)
 
 
 transaction_graphql_schema = graphene.Schema(query=Query)

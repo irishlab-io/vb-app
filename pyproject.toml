@@ -2,6 +2,7 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+
 [project]
 name = "vuln-bank"
 version = "0.0.1"
@@ -42,6 +43,7 @@ required-version = ">=0.11.0"
 [tool.hatch.build.targets.wheel]
 packages = ["src/vuln_bank"]
 
+
 [tool.pytest.ini_options]
 python_paths = [
     "src",
@@ -67,9 +69,80 @@ markers = [
     "e2e: End-to-end tests",
     ]
 
+
 [tool.ruff]
+extend-exclude = [
+    "__pycache__",
+    ".venv",
+    "data",
+    "tests",
+    "scripts",
+    ]
+line-length = 128
+src = [
+    "src",
+    ]
 target-version = "py39"
-line-length = 88
+
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
+extend-select = [
+  "C4",
+  "D200",
+  "D201",
+  "D204",
+  "D205",
+  "D206",
+  "D210",
+  "D211",
+  "D213",
+  "D300",
+  "D400",
+  "D402",
+  "D403",
+  "D404",
+  "D419",
+  "E",
+  "F",
+  "FURB",
+  "G010",
+  "I",
+  "INP001",
+  "N805",
+  "PERF101",
+  "PERF102",
+  "PERF401",
+  "PERF402",
+  "PGH004",
+  "PGH005",
+  "PIE794",
+  "PIE796",
+  "PIE807",
+  "PIE810",
+  "PLR",
+  "RET502",
+  "RET503",
+  "RET504",
+  "RET505",
+  "RUF015",
+  "RUF032",
+  "RUF033",
+  "RUF034",
+  "RUF041",
+  "RUF046",
+  "RUF100",
+  "S101",
+  "T20",
+  "UP",
+  "W",
+]
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+  "S101"
+  ]
