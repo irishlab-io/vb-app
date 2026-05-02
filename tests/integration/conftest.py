@@ -5,9 +5,8 @@ Shared infrastructure (app, client, tokens, rate-limit clearing) is
 provided by tests/conftest.py.  Fixtures defined here are only available
 to the integration test module.
 """
-import pytest
-from unittest.mock import MagicMock, patch
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Canonical DB row constants – re-exported so integration tests do not need

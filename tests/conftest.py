@@ -19,7 +19,6 @@ import vuln_bank.app as _app_module
 from vuln_bank.app import app as _flask_app
 from vuln_bank.auth import generate_token, init_auth_routes
 
-
 # ---------------------------------------------------------------------------
 # App / client fixtures
 # ---------------------------------------------------------------------------

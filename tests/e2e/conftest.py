@@ -10,9 +10,8 @@ production.
 Shared infrastructure from tests/conftest.py (app, client, token
 generation, rate-limit clearing) is inherited automatically.
 """
-import pytest
-from unittest.mock import MagicMock
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Canonical DB rows

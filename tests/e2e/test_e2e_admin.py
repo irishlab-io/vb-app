@@ -8,10 +8,7 @@ happy path and privilege-enforcement (non-admin must be rejected with 403).
 """
 from unittest.mock import patch
 
-import pytest
-
-from .conftest import E2E_USER, E2E_USER2, E2E_ADMIN
-
+from .conftest import E2E_USER
 
 # (id, amount, user_id, status, created_at)
 _LOAN_PENDING  = (1, 2, 1000.0, "pending",  "2024-06-01 00:00:00")

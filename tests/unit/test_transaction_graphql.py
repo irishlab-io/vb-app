@@ -3,9 +3,9 @@
 Functions that require database access are tested by mocking execute_query;
 purely computational helpers are tested directly.
 """
+import math
 from unittest.mock import patch
 
-import math
 import pytest
 
 from vuln_bank.transaction_graphql import (
@@ -16,7 +16,6 @@ from vuln_bank.transaction_graphql import (
     _load_user_actor,
     _resolve_scope,
 )
-
 
 # ---------------------------------------------------------------------------
 # _coerce_finite_float

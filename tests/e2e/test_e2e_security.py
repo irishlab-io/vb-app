@@ -5,13 +5,12 @@ Each test class exercises a documented vulnerability end-to-end through
 the full Flask request pipeline, verifying both the exploit path and (where
 applicable) the existence of the weakness in the running application.
 """
-import jwt
 from unittest.mock import patch
 
+import jwt
 import pytest
 
-from .conftest import E2E_USER, E2E_USER2, E2E_ADMIN
-
+from .conftest import E2E_ADMIN, E2E_USER, E2E_USER2
 
 # ===========================================================================
 # Auth boundary enforcement

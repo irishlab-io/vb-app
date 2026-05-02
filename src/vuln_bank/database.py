@@ -1,8 +1,7 @@
 import os
-import psycopg2
-from psycopg2 import pool
-from datetime import datetime
 import time
+
+import psycopg2
 
 # Vulnerable database configuration
 # CWE-259: Use of Hard-coded Password

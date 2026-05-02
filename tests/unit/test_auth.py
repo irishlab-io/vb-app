@@ -3,10 +3,8 @@ token_required decorator."""
 from unittest.mock import patch
 
 import jwt
-import pytest
 
 from vuln_bank.auth import JWT_SECRET, generate_token, verify_token
-
 
 # ---------------------------------------------------------------------------
 # generate_token

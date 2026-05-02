@@ -1,5 +1,6 @@
-import graphene
 import math
+
+import graphene
 from graphql import GraphQLError
 
 from vuln_bank.database import execute_query

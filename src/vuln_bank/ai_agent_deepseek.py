@@ -1,8 +1,11 @@
-import os
 import json
-import requests
-from vuln_bank.database import execute_query
+import os
 from datetime import datetime
+
+import requests
+
+from vuln_bank.database import execute_query
+
 
 class VulnerableAIAgent:
     """

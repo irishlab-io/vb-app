@@ -3,7 +3,7 @@
 Database calls (execute_query / execute_transaction) are mocked so that no
 real PostgreSQL instance is required.
 """
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

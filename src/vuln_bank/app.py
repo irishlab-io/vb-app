@@ -1,34 +1,41 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, make_response
-from datetime import datetime, timedelta
+import os
 import random
 import string
-import html
-import os
+from datetime import datetime, timedelta
 from pathlib import Path
+
 from dotenv import load_dotenv
+from flask import Flask, jsonify, make_response, render_template, request
 
 # Package directory: src/vuln_bank/app.py → src/vuln_bank/
 _PKG_DIR = Path(__file__).resolve().parent
-from vuln_bank.auth import generate_token, token_required, verify_token, init_auth_routes
-import vuln_bank.auth as auth
-from werkzeug.utils import secure_filename
-from flask_swagger_ui import get_swaggerui_blueprint
+import platform
+import time
+from collections import defaultdict
+from functools import wraps
+from urllib.parse import urlparse
+
+import requests
 from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
+from werkzeug.utils import secure_filename
+
+import vuln_bank.auth as auth
+from vuln_bank.ai_agent_deepseek import ai_agent
+from vuln_bank.auth import (
+    generate_token,
+    init_auth_routes,
+    token_required,
+    verify_token,
+)
 from vuln_bank.database import (
-    init_connection_pool,
-    init_db,
+    check_database_connection,
     execute_query,
     execute_transaction,
-    check_database_connection,
+    init_connection_pool,
+    init_db,
 )
-from vuln_bank.ai_agent_deepseek import ai_agent
 from vuln_bank.transaction_graphql import transaction_graphql_schema
-import time
-from functools import wraps
-from collections import defaultdict
-import requests
-from urllib.parse import urlparse
-import platform
 
 # Load environment variables
 load_dotenv()

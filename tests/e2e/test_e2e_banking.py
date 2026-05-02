@@ -7,12 +7,11 @@ database boundary (execute_query / execute_transaction); auth middleware,
 rate-limiting, and serialisation all run normally.
 """
 from io import BytesIO
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from .conftest import E2E_USER, E2E_USER2, E2E_ADMIN
-
+from .conftest import E2E_USER
 
 # ===========================================================================
 # Journey 1: New user registers, logs in, operates on their account

@@ -7,7 +7,7 @@ no real PostgreSQL instance is required, while the full Flask request
 pipeline runs normally.
 """
 from io import BytesIO
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -528,7 +528,6 @@ class TestApiAuthRoutes:
     """Routes defined via init_auth_routes in auth.py (SQLite-backed)."""
 
     def test_api_login_success(self, client):
-        import sqlite3
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
