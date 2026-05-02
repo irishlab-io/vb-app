@@ -23,9 +23,7 @@ connection_pool = None
 
 
 def init_connection_pool(min_connections=2, max_connections=30, max_retries=5, retry_delay=2):
-    """
-    Initialize the database connection pool with retry mechanism.
-    """
+    """Initialize the database connection pool with retry mechanism."""
     global connection_pool
     if connection_pool is not None:
         return connection_pool
@@ -46,6 +44,7 @@ def init_connection_pool(min_connections=2, max_connections=30, max_retries=5, r
             else:
                 logger.error("Max retries reached. Could not establish database connection.")
                 raise e
+    return None
 
 
 def check_database_connection():
@@ -77,8 +76,9 @@ def return_connection(connection):
 
 def init_db():
     """
-    Initialize database tables
-    Multiple vulnerabilities present for learning purposes
+    Initialize database tables.
+
+    Multiple vulnerabilities present for learning purposes.
     """
     conn = get_connection()
     try:
@@ -266,9 +266,7 @@ def init_db():
 
 
 def execute_query(query, params=None, fetch=True):
-    """
-    Execute a database query.
-    """
+    """Execute a database query."""
     conn = get_connection()
     try:
         with conn.cursor() as cursor:
@@ -290,7 +288,8 @@ def execute_query(query, params=None, fetch=True):
 def execute_transaction(queries_and_params):
     """
     Execute multiple queries in a transaction.
-    queries_and_params: list of tuples (query, params)
+
+    queries_and_params: list of tuples (query, params).
     """
     conn = get_connection()
     try:

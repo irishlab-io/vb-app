@@ -1,21 +1,18 @@
 import logging
 import os
+import platform
 import random
 import string
-from datetime import datetime, timedelta
-from pathlib import Path
-
-from dotenv import load_dotenv
-from flask import Flask, jsonify, make_response, render_template, request
-
-_PKG_DIR = Path(__file__).resolve().parent
-import platform
 import time
 from collections import defaultdict
+from datetime import datetime, timedelta
 from functools import wraps
+from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+from dotenv import load_dotenv
+from flask import Flask, jsonify, make_response, render_template, request
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from werkzeug.utils import secure_filename
@@ -36,6 +33,8 @@ from vuln_bank.database import (
     init_db,
 )
 from vuln_bank.transaction_graphql import transaction_graphql_schema
+
+_PKG_DIR = Path(__file__).resolve().parent
 
 # Load environment variables
 load_dotenv()
@@ -88,6 +87,14 @@ CARD_CURRENCY_RATES = {
 }
 
 
+# User tuple field index bounds for existence checks
+USER_SUSPENDED_FIELD_IDX = 9
+USER_PROFILE_PICTURE_FIELD_IDX = 6
+USER_BIO_FIELD_IDX = 8
+# HTTP error status threshold
+HTTP_ERROR_THRESHOLD = 400
+
+
 def normalize_card_currency(currency):
     normalized = str(currency or "USD").upper()
     return normalized if normalized in CARD_CURRENCY_RATES else "USD"
@@ -100,7 +107,7 @@ def convert_usd_to_card_currency(amount, currency):
 
 
 def cleanup_rate_limit_storage():
-    """Clean up old entries from rate limit storage"""
+    """Clean up old entries from rate limit storage."""
     current_time = time.time()
     cutoff_time = current_time - RATE_LIMIT_WINDOW
 
@@ -115,7 +122,7 @@ def cleanup_rate_limit_storage():
 
 
 def get_client_ip():
-    """Get client IP address, considering proxy headers"""
+    """Get client IP address, considering proxy headers."""
     if request.headers.get("X-Forwarded-For"):
         return request.headers.get("X-Forwarded-For").split(",")[0].strip()
     if request.headers.get("X-Real-IP"):
@@ -124,7 +131,7 @@ def get_client_ip():
 
 
 def check_rate_limit(key, limit):
-    """Check if the request should be rate limited"""
+    """Check if the request should be rate limited."""
     cleanup_rate_limit_storage()
     current_time = time.time()
 
@@ -140,7 +147,7 @@ def check_rate_limit(key, limit):
 
 
 def ai_rate_limit(f):
-    """Rate limiting decorator for AI endpoints"""
+    """Rate limiting decorator for AI endpoints."""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -164,7 +171,10 @@ def ai_rate_limit(f):
                         return jsonify(
                             {
                                 "status": "error",
-                                "message": f"Rate limit exceeded for user. You have made {user_count} requests in the last 3 hours. Limit is {user_limit} requests per 3 hours.",
+                                "message": (
+                                    f"Rate limit exceeded for user. You have made {user_count} requests "
+                                    f"in the last 3 hours. Limit is {user_limit} requests per 3 hours."
+                                ),
                                 "rate_limit_info": {
                                     "limit_type": "authenticated_user",
                                     "current_count": user_count,
@@ -181,7 +191,10 @@ def ai_rate_limit(f):
                         return jsonify(
                             {
                                 "status": "error",
-                                "message": f"Rate limit exceeded for IP address. This IP has made {ip_count} requests in the last 3 hours. Limit is {ip_limit} requests per 3 hours.",
+                                "message": (
+                                    f"Rate limit exceeded for IP address. This IP has made {ip_count} requests "
+                                    f"in the last 3 hours. Limit is {ip_limit} requests per 3 hours."
+                                ),
                                 "rate_limit_info": {
                                     "limit_type": "authenticated_ip",
                                     "current_count": ip_count,
@@ -194,7 +207,7 @@ def ai_rate_limit(f):
 
                     # Both checks passed, proceed with authenticated function
                     return f(*args, **kwargs)
-            except:
+            except Exception:
                 pass  # Fall through to unauthenticated handling
 
         # Unauthenticated mode: rate limit by IP only
@@ -205,7 +218,11 @@ def ai_rate_limit(f):
             return jsonify(
                 {
                     "status": "error",
-                    "message": f"Rate limit exceeded. This IP address has made {ip_count} requests in the last 3 hours. Limit is {ip_limit} requests per 3 hours for unauthenticated users.",
+                    "message": (
+                        f"Rate limit exceeded. This IP address has made {ip_count} requests "
+                        f"in the last 3 hours. Limit is {ip_limit} requests per 3 hours "
+                        "for unauthenticated users."
+                    ),
                     "rate_limit_info": {
                         "limit_type": "unauthenticated_ip",
                         "current_count": ip_count,
@@ -233,12 +250,12 @@ def generate_account_number():
 
 
 def generate_card_number():
-    """Generate a 16-digit card number"""
+    """Generate a 16-digit card number."""
     return "".join(random.choices(string.digits, k=16))
 
 
 def generate_cvv():
-    """Generate a 3-digit CVV"""
+    """Generate a 3-digit CVV."""
     return "".join(random.choices(string.digits, k=3))
 
 
@@ -436,7 +453,7 @@ def login():
                 user = user[0]  # Get first row
                 logger.debug("Debug - Found user: %s", user)
 
-                if len(user) > 9 and user[9]:
+                if len(user) > USER_SUSPENDED_FIELD_IDX and user[9]:
                     return jsonify({"status": "error", "message": suspension_message}), 403
 
                 # Generate JWT token instead of using session
@@ -515,7 +532,7 @@ def dashboard(current_user):
         "account_number": user[3],
         "balance": float(user[4]),
         "is_admin": user[5],
-        "profile_picture": user[6] if len(user) > 6 and user[6] else "user.png",  # Default image
+        "profile_picture": user[6] if len(user) > USER_PROFILE_PICTURE_FIELD_IDX and user[6] else "user.png",  # Default image
     }
 
     return render_template(
@@ -721,7 +738,7 @@ def upload_profile_picture_url(current_user):
             return jsonify({"status": "error", "message": "image_url is required"}), 400
 
         resp = requests.get(image_url, timeout=10, allow_redirects=True, verify=False)
-        if resp.status_code >= 400:
+        if resp.status_code >= HTTP_ERROR_THRESHOLD:
             return jsonify(
                 {
                     "status": "error",
@@ -1158,7 +1175,10 @@ def create_admin(current_user):
         account_number = generate_account_number()
 
         execute_query(
-            f"INSERT INTO users (username, password, account_number, is_admin) VALUES ('{username}', '{password}', '{account_number}', true)",
+            (
+                f"INSERT INTO users (username, password, account_number, is_admin) "
+                f"VALUES ('{username}', '{password}', '{account_number}', true)"
+            ),
             fetch=False,
         )
 
@@ -1372,7 +1392,7 @@ def api_v3_get_user(current_user, user_id):
                         "account_number": user_data[3],
                         "balance": float(user_data[4]) if user_data[4] else 0,
                         "is_admin": user_data[5],
-                        "bio": user_data[8] if len(user_data) > 8 else None,
+                        "bio": user_data[8] if len(user_data) > USER_BIO_FIELD_IDX else None,
                     },
                 }
             )
@@ -1523,19 +1543,18 @@ def api_transactions(current_user):
         transactions = execute_query(query)
 
         # Convert Decimal objects to float for JSON serialization
-        transaction_list = []
-        for t in transactions:
-            transaction_list.append(
-                {
-                    "id": t[0],
-                    "from_account": t[1],
-                    "to_account": t[2],
-                    "amount": float(t[3]),
-                    "timestamp": str(t[4]),
-                    "transaction_type": t[5],
-                    "description": t[6],
-                }
-            )
+        transaction_list = [
+            {
+                "id": t[0],
+                "from_account": t[1],
+                "to_account": t[2],
+                "amount": float(t[3]),
+                "timestamp": str(t[4]),
+                "transaction_type": t[5],
+                "description": t[6],
+            }
+            for t in transactions
+        ]
 
         return jsonify({"transactions": transaction_list, "account_number": account_number})
 
@@ -1563,7 +1582,8 @@ def create_virtual_card(current_user):
             INSERT INTO virtual_cards
             (user_id, card_number, cvv, expiry_date, card_limit, card_type, currency)
             VALUES
-            ({current_user["user_id"]}, '{card_number}', '{cvv}', '{expiry_date}', {card_limit}, '{card_type}', '{card_currency}')
+            ({current_user["user_id"]}, '{card_number}', '{cvv}', '{expiry_date}',
+             {card_limit}, '{card_type}', '{card_currency}')
             RETURNING id
         """
 
@@ -1813,10 +1833,13 @@ def fund_virtual_card(current_user, card_id):
             ), 400
 
         if card[5]:
-            return jsonify({"status": "error", "message": "Card is frozen"}), 400
-
-        if usd_amount > float(user_balance):
-            return jsonify({"status": "error", "message": "Insufficient main balance"}), 400
+            error_msg = "Card is frozen"
+        elif usd_amount > float(user_balance):
+            error_msg = "Insufficient main balance"
+        else:
+            error_msg = None
+        if error_msg:
+            return jsonify({"status": "error", "message": error_msg}), 400
 
         converted_amount = round(usd_amount * exchange_rate, CARD_CURRENCY_RATES[card_currency]["precision"])
         new_card_balance = float(card[4]) + converted_amount
@@ -1825,6 +1848,8 @@ def fund_virtual_card(current_user, card_id):
             return jsonify({"status": "error", "message": "Funding would exceed the card limit"}), 400
 
         funding_description = f"Funded {card_currency} virtual card from main balance"
+        symbol = CARD_CURRENCY_RATES[card_currency]["symbol"]
+        tx_description = f"{funding_description}: ${usd_amount:.2f} @ {exchange_rate} -> {symbol}{converted_amount}"
         queries = [
             (
                 """
@@ -1868,7 +1893,7 @@ def fund_virtual_card(current_user, card_id):
                     card[2],
                     usd_amount,
                     "virtual_card_funding",
-                    f"{funding_description}: ${usd_amount:.2f} @ {exchange_rate} -> {CARD_CURRENCY_RATES[card_currency]['symbol']}{converted_amount}",
+                    tx_description,
                 ),
             ),
         ]
@@ -2113,7 +2138,7 @@ def get_payment_history(current_user):
                         "id": p[0],
                         "amount": float(p[3]),
                         "payment_method": p[4],
-                        "card_number": p[13] if p[13] else None,
+                        "card_number": p[13] or None,
                         "reference": p[6],
                         "status": p[7],
                         "created_at": str(p[8]),
@@ -2136,9 +2161,7 @@ def get_payment_history(current_user):
 @ai_rate_limit
 @token_required
 def ai_chat_authenticated(current_user):
-    """
-    AI Customer Support Chat (Authenticated Mode)
-    """
+    """AI Customer Support Chat (Authenticated Mode)."""
     try:
         data = request.get_json()
         user_message = data.get("message", "")
@@ -2197,9 +2220,7 @@ def ai_chat_authenticated(current_user):
 @app.route("/api/ai/chat/anonymous", methods=["POST"])
 @ai_rate_limit
 def ai_chat_anonymous():
-    """
-    Anonymous AI chat endpoint (Unauthenticated Mode)
-    """
+    """Anonymous AI chat endpoint (Unauthenticated Mode)."""
     try:
         data = request.get_json()
         user_message = data.get("message", "")
@@ -2231,9 +2252,7 @@ def ai_chat_anonymous():
 @app.route("/api/ai/system-info", methods=["GET"])
 @ai_rate_limit
 def ai_system_info():
-    """
-    Exposes AI system information.
-    """
+    """Exposes AI system information."""
     try:
         return jsonify(
             {
@@ -2257,8 +2276,9 @@ def ai_system_info():
 @app.route("/api/ai/rate-limit-status", methods=["GET"])
 def ai_rate_limit_status():
     """
-    Check current rate limit status for AI endpoints
-    Useful for debugging and transparency
+    Check current rate limit status for AI endpoints.
+
+    Useful for debugging and transparency.
     """
     try:
         cleanup_rate_limit_storage()
@@ -2319,7 +2339,7 @@ def ai_rate_limit_status():
                         "user_id": user_data["user_id"],
                         "username": user_data["username"],
                     }
-            except:
+            except Exception:
                 pass  # Token invalid, stay with unauthenticated status
 
         return jsonify(status)

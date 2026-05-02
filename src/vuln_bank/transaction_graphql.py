@@ -212,15 +212,14 @@ def _build_transaction_summary(rows, scoped_account_number, scope, scoped_user_i
             }
         )
 
-    ordered_breakdown = []
-    for aggregate in sorted(by_type.values(), key=lambda item: item["total_amount"], reverse=True):
-        ordered_breakdown.append(
-            {
-                "transaction_type": aggregate["transaction_type"],
-                "count": aggregate["count"],
-                "total_amount": round(aggregate["total_amount"], 2),
-            }
-        )
+    ordered_breakdown = [
+        {
+            "transaction_type": aggregate["transaction_type"],
+            "count": aggregate["count"],
+            "total_amount": round(aggregate["total_amount"], 2),
+        }
+        for aggregate in sorted(by_type.values(), key=lambda item: item["total_amount"], reverse=True)
+    ]
 
     return {
         "scope": scope,

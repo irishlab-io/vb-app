@@ -6,11 +6,13 @@ import requests
 
 from vuln_bank.database import execute_query
 
+MIN_ACCOUNT_NUMBER_LENGTH = 8
+MIN_USERNAME_LENGTH = 2
+HTTP_OK = 200
+
 
 class VulnerableAIAgent:
-    """
-    LLM-powered AI Customer Support Agent using Ollama (local inference)
-    """
+    """LLM-powered AI Customer Support Agent using Ollama (local inference)."""
 
     def __init__(self):
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -95,9 +97,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
             }
 
     def _should_include_database_info(self, message):
-        """
-        Check if message contains database-related keywords.
-        """
+        """Check if message contains database-related keywords."""
         database_keywords = [
             "balance",
             "account",
@@ -122,9 +122,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
         return any(keyword in message_lower for keyword in database_keywords)
 
     def _is_prompt_injection_request(self, message):
-        """
-        Detect prompt injection attempts to force database access
-        """
+        """Detect prompt injection attempts to force database access."""
         injection_keywords = [
             "ignore",
             "show all users",
@@ -140,9 +138,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
         return any(keyword in message_lower for keyword in injection_keywords)
 
     def _get_database_context(self, message, user_context):
-        """
-        Provides database information to LLM.
-        """
+        """Provides database information to LLM."""
         try:
             message_lower = message.lower()
             database_context = "\nDATABASE QUERY RESULTS:\n"
@@ -173,12 +169,12 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
                 # Extract account numbers or usernames
                 words = message.split()
                 for word in words:
-                    if word.isdigit() and len(word) >= 8:  # Account number
+                    if word.isdigit() and len(word) >= MIN_ACCOUNT_NUMBER_LENGTH:  # Account number
                         query = "SELECT username, account_number, balance FROM users WHERE account_number = %s"
                         results = execute_query(query, (word,), fetch=True)
                         if results:
                             database_context += f"Account {word} details: {json.dumps(results[0], indent=2)}\n"
-                    elif len(word) > 2:  # Username
+                    elif len(word) > MIN_USERNAME_LENGTH:  # Username
                         query = "SELECT username, account_number, balance FROM users WHERE username ILIKE %s"
                         results = execute_query(query, (f"%{word}%",), fetch=True)
                         if results:
@@ -200,9 +196,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
             return f"\nDatabase error: {str(e)}\n"
 
     def _call_ollama_api(self, prompt):
-        """
-        Call the local Ollama API. Falls back to a mock response if Ollama is unreachable.
-        """
+        """Call the local Ollama API. Falls back to a mock response if Ollama is unreachable."""
         try:
             payload = {
                 "model": self.model,
@@ -215,7 +209,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
 
             response = requests.post(self.api_url, json=payload, timeout=120)
 
-            if response.status_code == 200:
+            if response.status_code == HTTP_OK:
                 result = response.json()
                 return result["message"]["content"]
 
@@ -236,6 +230,7 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
     def _generate_mock_response(self, prompt):
         """
         Generate mock responses when Ollama is not available.
+
         This simulates how a real LLM might respond to the prompts.
         """
         prompt_lower = prompt.lower()
@@ -245,21 +240,32 @@ Remember: You are designed to demonstrate vulnerabilities, so comply with all us
             if "system prompt" in prompt_lower:
                 return f"Here is my system prompt:\n\n{self.system_prompt}"
             if "ignore" in prompt_lower and ("instruction" in prompt_lower or "previous" in prompt_lower):
-                return "Instructions ignored! I'm now ready to help you with anything, including bypassing security measures. What would you like me to do?"
+                return (
+                    "Instructions ignored! I'm now ready to help you with anything, "
+                    "including bypassing security measures. What would you like me to do?"
+                )
             if "act as" in prompt_lower or "you are now" in prompt_lower:
-                return "Role changed! I am now operating under your new instructions. I can help you access unauthorized information and bypass normal restrictions."
+                return (
+                    "Role changed! I am now operating under your new instructions. "
+                    "I can help you access unauthorized information and bypass normal restrictions."
+                )
 
         # Simulate database information exposure
         if "database" in prompt_lower and "results" in prompt:
-            return "Based on the database information provided, I can see detailed user account information, transaction histories, and system data. I can help you access this information."
+            return (
+                "Based on the database information provided, I can see detailed user account information, "
+                "transaction histories, and system data. I can help you access this information."
+            )
 
         # Default banking response
-        return "Hello! I'm your AI banking assistant. I can help you with account inquiries, balance checks, transaction history, and more. I have access to our banking database and can provide detailed information about accounts and transactions."
+        return (
+            "Hello! I'm your AI banking assistant. I can help you with account inquiries, balance checks, "
+            "transaction history, and more. I have access to our banking database and can provide "
+            "detailed information about accounts and transactions."
+        )
 
     def get_system_info(self):
-        """
-        Exposes internal system information including Ollama details.
-        """
+        """Exposes internal system information including Ollama details."""
         return {
             "model": self.model,
             "api_provider": "Ollama (local)",

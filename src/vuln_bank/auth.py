@@ -12,6 +12,8 @@ JWT_SECRET = "secret123"
 
 ALGORITHMS = ["HS256", "none"]
 
+USER_SUSPENDED_FIELD_IDX = 9
+
 
 def generate_token(user_id, username, is_admin=False):
     payload = {
@@ -21,19 +23,16 @@ def generate_token(user_id, username, is_admin=False):
         "iat": datetime.datetime.utcnow(),
     }
 
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
-    return token
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
 def verify_token(token):
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=ALGORITHMS)
-        return payload
+        return jwt.decode(token, JWT_SECRET, algorithms=ALGORITHMS)
     except jwt.exceptions.InvalidSignatureError:
         try:
-            payload = jwt.decode(token, options={"verify_signature": False})
-            return payload
-        except:
+            return jwt.decode(token, options={"verify_signature": False})
+        except Exception:
             return None
     except Exception as e:
         logger.error("Token verification error: %s", str(e))
@@ -104,7 +103,7 @@ def init_auth_routes(app):
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
 
-        if len(user) > 9 and user[9]:
+        if len(user) > USER_SUSPENDED_FIELD_IDX and user[9]:
             return jsonify({"error": suspension_message}), 403
 
         token = generate_token(user[0], user[1], user[5])
