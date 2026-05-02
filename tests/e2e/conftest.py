@@ -19,12 +19,42 @@ import pytest
 
 # (id, username, password, account_number, balance,
 #  is_admin, profile_picture, reset_pin, bio, is_suspended)
-E2E_USER   = (10, "e2euser",  "e2epass",   "9000000001", 5000.0,
-              False, None, None, None, False)
-E2E_USER2  = (11, "e2euser2", "e2epass2",  "9000000002", 3000.0,
-              False, None, None, None, False)
-E2E_ADMIN  = (1,  "admin",    "adminpass", "0000000001", 99999.0,
-              True,  None, None, None, False)
+E2E_USER = (
+    10,
+    "e2euser",
+    "e2epass",
+    "9000000001",
+    5000.0,
+    False,
+    None,
+    None,
+    None,
+    False,
+)
+E2E_USER2 = (
+    11,
+    "e2euser2",
+    "e2epass2",
+    "9000000002",
+    3000.0,
+    False,
+    None,
+    None,
+    None,
+    False,
+)
+E2E_ADMIN = (
+    1,
+    "admin",
+    "adminpass",
+    "0000000001",
+    99999.0,
+    True,
+    None,
+    None,
+    None,
+    False,
+)
 
 
 @pytest.fixture

@@ -5,6 +5,7 @@ The psycopg2 connection pool is patched at module level so that importing
 vuln_bank.app does not attempt a real database connection during test
 collection or execution.
 """
+
 from unittest.mock import MagicMock
 
 import psycopg2.pool

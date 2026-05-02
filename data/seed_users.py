@@ -63,6 +63,7 @@ SEED_CLEAR = os.getenv("SEED_CLEAR", "false").strip().lower() == "true"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def generate_account_number(existing: set[str]) -> str:
     """Generate a unique 10-digit account number prefixed with ACC."""
     while True:
@@ -78,7 +79,9 @@ def generate_reset_pin() -> str:
     return "".join(random.choices(string.digits, k=6))
 
 
-def build_fake_users(faker: Faker, count: int, existing_accounts: set[str]) -> list[dict]:
+def build_fake_users(
+    faker: Faker, count: int, existing_accounts: set[str]
+) -> list[dict]:
     users = []
     seen_usernames: set[str] = set()
 
@@ -100,7 +103,9 @@ def build_fake_users(faker: Faker, count: int, existing_accounts: set[str]) -> l
         users.append(
             {
                 "username": username,
-                "password": faker.password(length=12, special_chars=True, digits=True, upper_case=True),
+                "password": faker.password(
+                    length=12, special_chars=True, digits=True, upper_case=True
+                ),
                 "account_number": generate_account_number(existing_accounts),
                 "balance": balance,
                 "is_admin": False,
@@ -118,8 +123,11 @@ def build_fake_users(faker: Faker, count: int, existing_accounts: set[str]) -> l
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
-    print(f"Connecting to database '{DB_CONFIG['dbname']}' at {DB_CONFIG['host']}:{DB_CONFIG['port']} …")
+    print(
+        f"Connecting to database '{DB_CONFIG['dbname']}' at {DB_CONFIG['host']}:{DB_CONFIG['port']} …"
+    )
 
     try:
         conn = psycopg2.connect(**DB_CONFIG)
@@ -173,7 +181,9 @@ def main() -> None:
                     user,
                 )
                 if cur.rowcount:
-                    print(f"  INSERT {user['username']}  (acc: {user['account_number']}, balance: {user['balance']:.2f})")
+                    print(
+                        f"  INSERT {user['username']}  (acc: {user['account_number']}, balance: {user['balance']:.2f})"
+                    )
                     existing_usernames.add(user["username"])
                     inserted += 1
                 else:

@@ -1,5 +1,6 @@
 """Unit tests for pure utility functions in vuln_bank.app that do not require a
 database connection: currency helpers, random generators, and rate limiting."""
+
 import time
 
 import pytest

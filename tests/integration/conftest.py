@@ -15,14 +15,21 @@ import pytest
 
 # (id, username, password, account_number, balance,
 #  is_admin, profile_picture, reset_pin, bio, is_suspended)
-USER_ROW     = (2, "alice",  "pass",      "1111111111", 800.0,
-                False, None, None, "Hello", False)
-USER2_ROW    = (3, "bob",    "pass2",     "2222222222", 500.0,
-                False, None, None, None, False)
-ADMIN_ROW    = (1, "admin",  "adminpass", "0000000001", 9999.0,
-                True,  None, None, None, False)
-SUSPENDED_ROW = (4, "eve",   "pass",      "3333333333", 100.0,
-                 False, None, None, None, True)
+USER_ROW = (2, "alice", "pass", "1111111111", 800.0, False, None, None, "Hello", False)
+USER2_ROW = (3, "bob", "pass2", "2222222222", 500.0, False, None, None, None, False)
+ADMIN_ROW = (
+    1,
+    "admin",
+    "adminpass",
+    "0000000001",
+    9999.0,
+    True,
+    None,
+    None,
+    None,
+    False,
+)
+SUSPENDED_ROW = (4, "eve", "pass", "3333333333", 100.0, False, None, None, None, True)
 
 
 @pytest.fixture

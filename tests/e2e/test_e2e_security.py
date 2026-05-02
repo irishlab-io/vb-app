@@ -5,6 +5,7 @@ Each test class exercises a documented vulnerability end-to-end through
 the full Flask request pipeline, verifying both the exploit path and (where
 applicable) the existence of the weakness in the running application.
 """
+
 from unittest.mock import patch
 
 import jwt
@@ -16,6 +17,7 @@ from .conftest import E2E_ADMIN, E2E_USER, E2E_USER2
 # Auth boundary enforcement
 # ===========================================================================
 
+
 class TestAuthenticationBoundaries:
     """
     Confirm that protected routes consistently refuse unauthenticated
@@ -24,15 +26,15 @@ class TestAuthenticationBoundaries:
     """
 
     _PROTECTED_ROUTES = [
-        ("GET",  "/dashboard"),
+        ("GET", "/dashboard"),
         ("POST", "/transfer"),
         ("POST", "/upload_profile_picture"),
         ("POST", "/update_bio"),
         ("POST", "/request_loan"),
-        ("GET",  "/api/virtual-cards"),
+        ("GET", "/api/virtual-cards"),
         ("POST", "/api/virtual-cards/create"),
-        ("GET",  "/api/transactions"),
-        ("GET",  "/sup3r_s3cr3t_admin"),
+        ("GET", "/api/transactions"),
+        ("GET", "/sup3r_s3cr3t_admin"),
     ]
 
     @pytest.mark.parametrize("method,path", _PROTECTED_ROUTES)
@@ -59,6 +61,7 @@ class TestAuthenticationBoundaries:
 # ===========================================================================
 # CWE-347 – Improper Verification of Cryptographic Signature (alg=none)
 # ===========================================================================
+
 
 class TestJwtAlgorithmConfusionVulnerability:
     """
@@ -98,8 +101,7 @@ class TestJwtAlgorithmConfusionVulnerability:
             "WRONG_SECRET",
             algorithm="HS256",
         )
-        with patch("vuln_bank.app.execute_query",
-                   side_effect=[[E2E_USER], []]):
+        with patch("vuln_bank.app.execute_query", side_effect=[[E2E_USER], []]):
             resp = e2e_client.get(
                 "/dashboard",
                 headers={"Authorization": f"Bearer {forged}"},
@@ -111,6 +113,7 @@ class TestJwtAlgorithmConfusionVulnerability:
 # BOLA / IDOR – Broken Object-Level Authorisation
 # ===========================================================================
 
+
 class TestIdorVulnerability:
     """
     Documents OWASP API3:2023 – Broken Object Level Authorization.
@@ -120,9 +123,7 @@ class TestIdorVulnerability:
 
     def test_user_can_read_own_profile(self, e2e_client, user_auth_headers):
         with patch("vuln_bank.app.execute_query", return_value=[E2E_USER]):
-            resp = e2e_client.get(
-                "/api/v3/user/10", headers=user_auth_headers
-            )
+            resp = e2e_client.get("/api/v3/user/10", headers=user_auth_headers)
         assert resp.status_code == 200
 
     def test_user_can_read_another_users_profile_idor(
@@ -133,19 +134,13 @@ class TestIdorVulnerability:
         Requesting user_id=3 (another user) succeeds – IDOR vulnerability.
         """
         with patch("vuln_bank.app.execute_query", return_value=[E2E_USER2]):
-            resp = e2e_client.get(
-                "/api/v3/user/11", headers=user_auth_headers
-            )
+            resp = e2e_client.get("/api/v3/user/11", headers=user_auth_headers)
         assert resp.status_code == 200
 
-    def test_user_can_read_admin_profile_idor(
-        self, e2e_client, user_auth_headers
-    ):
+    def test_user_can_read_admin_profile_idor(self, e2e_client, user_auth_headers):
         """Regular user should NOT be able to see admin profile – but can."""
         with patch("vuln_bank.app.execute_query", return_value=[E2E_ADMIN]):
-            resp = e2e_client.get(
-                "/api/v3/user/1", headers=user_auth_headers
-            )
+            resp = e2e_client.get("/api/v3/user/1", headers=user_auth_headers)
         # Documents intentional vulnerability: admin profile exposed
         assert resp.status_code == 200
 
@@ -157,6 +152,7 @@ class TestIdorVulnerability:
 # ===========================================================================
 # SSRF – Server-Side Request Forgery (internal endpoint exposure)
 # ===========================================================================
+
 
 class TestSsrfInternalEndpoints:
     """
@@ -186,9 +182,7 @@ class TestSsrfInternalEndpoints:
         resp = e2e_client.get(path, environ_overrides=loopback_ip)
         assert resp.status_code == 200
 
-    def test_iam_credentials_exposed_from_loopback(
-        self, e2e_client, loopback_ip
-    ):
+    def test_iam_credentials_exposed_from_loopback(self, e2e_client, loopback_ip):
         """Simulates SSRF attacker reaching the fake IAM credential endpoint."""
         resp = e2e_client.get(
             "/latest/meta-data/iam/security-credentials/vulnbank-role",
@@ -204,6 +198,7 @@ class TestSsrfInternalEndpoints:
 # Password-reset API version information leakage
 # ===========================================================================
 
+
 class TestPasswordResetVersionLeakage:
     """
     Documents version-to-version API differences in the forgot-password
@@ -215,8 +210,18 @@ class TestPasswordResetVersionLeakage:
     """
 
     def test_v1_leaks_plain_reset_pin(self, e2e_client):
-        user_row = (10, "e2euser", "e2epass", "9000000001", 5000.0,
-                    False, None, None, None, False)
+        user_row = (
+            10,
+            "e2euser",
+            "e2epass",
+            "9000000001",
+            5000.0,
+            False,
+            None,
+            None,
+            None,
+            False,
+        )
         with patch("vuln_bank.app.execute_query", return_value=[user_row]):
             with patch("vuln_bank.app.execute_transaction"):
                 resp = e2e_client.post(
@@ -229,8 +234,18 @@ class TestPasswordResetVersionLeakage:
         assert "pin" in body.get("debug_info", {})
 
     def test_v2_does_not_expose_pin(self, e2e_client):
-        user_row = (10, "e2euser", "e2epass", "9000000001", 5000.0,
-                    False, None, None, None, False)
+        user_row = (
+            10,
+            "e2euser",
+            "e2epass",
+            "9000000001",
+            5000.0,
+            False,
+            None,
+            None,
+            None,
+            False,
+        )
         with patch("vuln_bank.app.execute_query", return_value=[user_row]):
             with patch("vuln_bank.app.execute_transaction"):
                 resp = e2e_client.post(
@@ -243,8 +258,18 @@ class TestPasswordResetVersionLeakage:
         assert "pin" not in body
 
     def test_v3_pin_is_four_digits(self, e2e_client):
-        user_row = (10, "e2euser", "e2epass", "9000000001", 5000.0,
-                    False, None, None, None, False)
+        user_row = (
+            10,
+            "e2euser",
+            "e2epass",
+            "9000000001",
+            5000.0,
+            False,
+            None,
+            None,
+            None,
+            False,
+        )
         with patch("vuln_bank.app.execute_query", return_value=[user_row]):
             with patch("vuln_bank.app.execute_transaction"):
                 resp = e2e_client.post(
@@ -253,9 +278,7 @@ class TestPasswordResetVersionLeakage:
                 )
         assert resp.status_code == 200
 
-    def test_forgot_password_unknown_user_returns_404_or_success(
-        self, e2e_client
-    ):
+    def test_forgot_password_unknown_user_returns_404_or_success(self, e2e_client):
         with patch("vuln_bank.app.execute_query", return_value=[]):
             resp = e2e_client.post(
                 "/api/v1/forgot-password",
@@ -267,6 +290,7 @@ class TestPasswordResetVersionLeakage:
 # ===========================================================================
 # AI rate-limiting enforcement
 # ===========================================================================
+
 
 class TestAiRateLimiting:
     """

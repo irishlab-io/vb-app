@@ -1,5 +1,6 @@
 """Unit tests for vuln_bank.auth – token generation, verification, and the
 token_required decorator."""
+
 from unittest.mock import patch
 
 import jwt
@@ -98,8 +99,18 @@ class TestVerifyToken:
 
 # Full user row: (id, username, password, account_number, balance,
 #                 is_admin, profile_picture, reset_pin, bio, is_suspended)
-_MOCK_USER_ROW = (2, "testuser", "pass", "1234567890", 1000.0,
-                  False, None, None, None, False)
+_MOCK_USER_ROW = (
+    2,
+    "testuser",
+    "pass",
+    "1234567890",
+    1000.0,
+    False,
+    None,
+    None,
+    None,
+    False,
+)
 
 
 class TestTokenRequired:
@@ -115,20 +126,17 @@ class TestTokenRequired:
         assert response.status_code == 401
 
     def test_valid_bearer_token_grants_access(self, client, user_auth_headers):
-        with patch("vuln_bank.app.execute_query",
-                   return_value=[_MOCK_USER_ROW]):
+        with patch("vuln_bank.app.execute_query", return_value=[_MOCK_USER_ROW]):
             response = client.get("/dashboard", headers=user_auth_headers)
         assert response.status_code == 200
 
     def test_token_from_query_param_grants_access(self, client, user_token):
-        with patch("vuln_bank.app.execute_query",
-                   return_value=[_MOCK_USER_ROW]):
+        with patch("vuln_bank.app.execute_query", return_value=[_MOCK_USER_ROW]):
             response = client.get(f"/dashboard?token={user_token}")
         assert response.status_code == 200
 
     def test_token_from_cookie_grants_access(self, client, user_token):
-        with patch("vuln_bank.app.execute_query",
-                   return_value=[_MOCK_USER_ROW]):
+        with patch("vuln_bank.app.execute_query", return_value=[_MOCK_USER_ROW]):
             client.set_cookie("localhost", "token", user_token)
             response = client.get("/dashboard")
         assert response.status_code == 200
