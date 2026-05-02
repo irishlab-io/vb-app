@@ -2,7 +2,7 @@ import graphene
 import math
 from graphql import GraphQLError
 
-from database import execute_query
+from vuln_bank.database import execute_query
 
 
 class TransactionRecordType(graphene.ObjectType):

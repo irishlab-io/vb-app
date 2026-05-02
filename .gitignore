@@ -1,3 +1,10 @@
 .env
-.pyc
+*.pyc
+*.pyo
+*.pyd
 __pycache__/
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/

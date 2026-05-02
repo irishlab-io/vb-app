@@ -12,15 +12,18 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
+# Install dependencies only (cached layer — rebuilds only when pyproject.toml/uv.lock change)
 RUN uv sync --frozen --no-dev --no-install-project
 
-# Create necessary directories
-RUN mkdir -p static/uploads templates
+# Copy source package and install it (separate layer for source changes)
+COPY src/ ./src/
+RUN uv sync --frozen --no-dev
 
+# Copy remaining project files
 COPY . .
 
 # Ensure uploads directory exists and has proper permissions
-RUN chmod 777 static/uploads
+RUN mkdir -p static/uploads && chmod 777 static/uploads
 RUN chmod +x /app/start.sh
 
 EXPOSE 5000

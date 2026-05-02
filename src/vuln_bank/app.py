@@ -4,21 +4,25 @@ import random
 import string
 import html
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-from auth import generate_token, token_required, verify_token, init_auth_routes
-import auth
+
+# Project root: src/vuln_bank/app.py → src/vuln_bank/ → src/ → project root
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+from vuln_bank.auth import generate_token, token_required, verify_token, init_auth_routes
+import vuln_bank.auth as auth
 from werkzeug.utils import secure_filename
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_cors import CORS
-from database import (
+from vuln_bank.database import (
     init_connection_pool,
     init_db,
     execute_query,
     execute_transaction,
     check_database_connection,
 )
-from ai_agent_deepseek import ai_agent
-from transaction_graphql import transaction_graphql_schema
+from vuln_bank.ai_agent_deepseek import ai_agent
+from vuln_bank.transaction_graphql import transaction_graphql_schema
 import time
 from functools import wraps
 from collections import defaultdict
@@ -30,7 +34,11 @@ import platform
 load_dotenv()
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=str(_PROJECT_ROOT / "templates"),
+    static_folder=str(_PROJECT_ROOT / "static"),
+)
 CORS(app)
 
 # Initialize database connection pool
@@ -198,7 +206,7 @@ def ai_rate_limit(f):
 
     return decorated_function
 
-UPLOAD_FOLDER = 'static/uploads'
+UPLOAD_FOLDER = str(_PROJECT_ROOT / "static" / "uploads")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 

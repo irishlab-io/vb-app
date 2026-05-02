@@ -12,4 +12,4 @@ until pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}"
 done
 
 echo "Starting Flask dev server (debug mode)..."
-exec uv run python app.py
+exec uv run python -m vuln_bank.app
