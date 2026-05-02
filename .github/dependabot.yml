@@ -24,7 +24,7 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 0 # disable auto PRs since this is a learning project and we want to manually review updates
+    open-pull-requests-limit: 10 # disable auto PRs since this is a learning project and we want to manually review updates
     cooldown:
       default-days: 7
     labels:
@@ -43,7 +43,7 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 0 # disable auto PRs since this is a learning project and we want to manually review updates
+    open-pull-requests-limit: 10 # disable auto PRs since this is a learning project and we want to manually review updates
     labels:
       - "dependencies"
       - "pre-commit"
