@@ -1,12 +1,14 @@
-FROM docker.io/python:3.9-slim
+FROM docker.io/python:3.9
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UV_COMPILE_BYTECODE=1
+ENV VIRTUAL_ENV=/app/.venv
 
 # Install PostgreSQL client
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
+RUN apt-get update && apt-get install -y curl postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -14,6 +16,7 @@ WORKDIR /app
 # Install dependencies only (no source code yet) — preserves Docker layer cache
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
+RUN uv pip install --no-cache-dir httplib2==0.14.0 pycrypto==2.6.1 urllib3==1.24.3
 
 # Copy remaining project files
 COPY . .
@@ -28,6 +31,6 @@ RUN chmod +x /app/start.sh
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD python -c "import sys, urllib.request; sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=5).getcode() == 200 else sys.exit(1)"
+  CMD curl -f http://localhost:5000/healthz || exit 1
 
 CMD ["./start.sh"]

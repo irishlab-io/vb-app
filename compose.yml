@@ -1,14 +1,22 @@
 ---
-name: vuln_bank
+name: vb-app
+
+networks:
+  vuln_network:
+    driver: bridge
+  tunnel:
+    driver: bridge
 
 services:
-  app:
+  vb-app:
+    container_name: vuln-app
     build: .
     restart: unless-stopped
+    networks:
+      - vuln_network
     ports:
       - "5000:5000"
       - "80:5000"
-
     environment:
       - DB_NAME=vuln_bank
       - DB_USER=postgres
@@ -17,33 +25,32 @@ services:
       - DB_PORT=5432
       - OLLAMA_URL=http://ai:11434
       - OLLAMA_MODEL=llama3.2
+    volumes:
+      - ./src/vuln_bank/static/uploads:/app/src/vuln_bank/static/uploads
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=5).getcode() == 200 else sys.exit(1)"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
       start_period: 30s
-    volumes:
-      - ./src/vuln_bank/static/uploads:/app/src/vuln_bank/static/uploads
-    networks:
-      - vuln_network
 
-  db:
+  vb-db:
+    container_name: vuln-db
     image: docker.io/postgres:13
     restart: unless-stopped
+    networks:
+      - vuln_network
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_DB=vuln_bank
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - vuln_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d vuln_bank"]
       interval: 10s
@@ -51,15 +58,16 @@ services:
       retries: 5
       start_period: 10s
 
-  ai:
+  vb-ai:
+    container_name: vuln-ai
     image: docker.io/ollama/ollama:0.22.1
     restart: unless-stopped
+    networks:
+      - vuln_network
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    networks:
-      - vuln_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/"]
       interval: 30s
@@ -67,10 +75,17 @@ services:
       retries: 5
       start_period: 60s
 
+  vb-tunnel:
+    container_name: vuln-tunnel
+    image: docker.io/cloudflare/cloudflared:latest
+    restart: unless-stopped
+    networks:
+      - tunnel
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+      - TZ=America/New_York
+    command: tunnel run --token ${CF_TUNNEL_TOKEN}
+
 volumes:
   postgres_data:
   ollama_data:
-
-networks:
-  vuln_network:
-    driver: bridge
