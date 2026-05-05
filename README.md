@@ -27,7 +27,7 @@ The application includes the following functional areas, each of which contains 
 - Password reset via 3-digit PIN
 - Multi-currency virtual card management with currency conversion (USD, GBP, NGN, JPY, EUR, QAR, BTC, ETH)
 - Bill payments
-- AI customer support agent (DeepSeek API or mock mode)
+- AI customer support agent (Ollama local inference or mock mode)
 
 For a full breakdown of implemented vulnerabilities by category, see [docs/vulnerabilities.md](docs/vulnerabilities.md).
 
@@ -36,14 +36,18 @@ For a full breakdown of implemented vulnerabilities by category, see [docs/vulne
 The recommended way to run the application is via Docker Compose.
 
 ```bash
-git clone https://github.com/irishlab-io/vuln-bank.git
-cd vuln-bank
-docker-compose up -d --build
+git clone https://github.com/irishlab-io/vb-app.git
+cd vb-app
+docker compose up -d --build
 ```
 
 The application will be available at `http://localhost:5000`.
 
 For detailed installation instructions, including local setup, environment configuration, and troubleshooting, see [docs/installation.md](docs/installation.md).
+
+For an overview of the application architecture and module responsibilities, see [docs/architecture.md](docs/architecture.md).
+
+For information on setting up a development environment and running tests, see [docs/contributing.md](docs/contributing.md).
 
 ## Attribution
 
