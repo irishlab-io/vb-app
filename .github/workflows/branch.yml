@@ -1,0 +1,88 @@
+---
+name: CI - Branches
+run-name: Continuous Integration on branch ${{ github.head_ref || github.ref_name }} by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - dev
+      - feat/*
+      - fix/*
+      - rel/*
+    paths-ignore:
+      - 'README.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+
+  pre-commit:
+    name: Call Prek
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-slim]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run Prek Checks
+        id: precommit
+        uses: j178/prek-action@cbc2f23eb5539cf20d82d1aabd0d0ecbcc56f4e3 # v2.0.2
+        env:
+          SKIP: "actionlint"
+        continue-on-error: true
+
+      - name: Check status of potentially failing step and issue warning
+        if: steps.precommit.outcome == 'failure'
+        run: |
+          echo "::error::The previous step detected potential pre-commit issues in the code. Please review the CI report above."
+        shell: bash
+
+  code_build:
+    needs:
+      - pre-commit
+    name: Call Python UV (Build & Unit Test)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        python-version: ['3.9']
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          version: latest
+
+      - name: Setup Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev --frozen
+        shell: bash
+
+      - name: Build & Test projects
+        id: build
+        run: |
+          uv build
+          uv run pytest
+          uv cache prune --ci # Minimize UV cache
+        shell: bash
