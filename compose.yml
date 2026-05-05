@@ -4,8 +4,6 @@ name: vb-app
 networks:
   vuln_network:
     driver: bridge
-  tunnel:
-    driver: bridge
 
 services:
   vb-app:
@@ -28,7 +26,7 @@ services:
     volumes:
       - ./src/vuln_bank/static/uploads:/app/src/vuln_bank/static/uploads
     depends_on:
-      db:
+      vb-db:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
@@ -74,17 +72,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-
-  vb-tunnel:
-    container_name: vuln-tunnel
-    image: docker.io/cloudflare/cloudflared:latest
-    restart: unless-stopped
-    networks:
-      - tunnel
-    environment:
-      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
-      - TZ=America/New_York
-    command: tunnel run --token ${CF_TUNNEL_TOKEN}
 
 volumes:
   postgres_data:
