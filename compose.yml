@@ -1,5 +1,5 @@
 ---
-name: vb-app
+name: vuln-bank
 
 networks:
   vuln_network:
@@ -16,24 +16,24 @@ services:
       - "5000:5000"
       - "80:5000"
     environment:
+      - DB_HOST=vb-db
       - DB_NAME=vuln_bank
-      - DB_USER=postgres
       - DB_PASSWORD=postgres
-      - DB_HOST=db
       - DB_PORT=5432
-      - OLLAMA_URL=http://ai:11434
+      - DB_USER=postgres
       - OLLAMA_MODEL=llama3.2
+      - OLLAMA_URL=http://vuln-ai:11434
     volumes:
       - ./src/vuln_bank/static/uploads:/app/src/vuln_bank/static/uploads
     depends_on:
       vb-db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/healthz"]
       interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   vb-db:
     container_name: vuln-db
