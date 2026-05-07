@@ -4,11 +4,7 @@ run-name: Continuous Integration for ${{ github.repository }} on ${{ github.head
 
 on: # yamllint disable-line rule:truthy
   schedule:
-    - cron: "0 0 * * 0"
-  pull_request:
-    types:
-      - opened
-      - synchronize
+    - cron: "0 * * * *" # Every hour
   workflow_dispatch:
 
 concurrency:
@@ -38,7 +34,7 @@ jobs:
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.metadata.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --merge "$PR_URL"
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
