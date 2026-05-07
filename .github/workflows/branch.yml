@@ -22,11 +22,7 @@ jobs:
 
   pre-commit:
     name: Call Prek
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-slim]
+    runs-on: ubuntu-slim
     timeout-minutes: 10
 
     steps:
