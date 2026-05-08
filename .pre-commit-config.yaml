@@ -62,6 +62,12 @@ repos:
     hooks:
       - id: uv-lock
         name: "python | uv: lock dependencies"
+      - id: uv-export
+        name: "python | uv: export dependencies"
+        args:
+          - --no-dev
+          - --output-file
+          - requirements.txt
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.12
     hooks:
