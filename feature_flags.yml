@@ -1,0 +1,102 @@
+# ==============================================================================
+# VulnBank — Feature Flags Configuration
+#
+# Set any flag to `false` to disable that feature.
+# All flags default to `true` when this file is absent or a key is missing.
+#
+# Changes take effect after calling feature_flags.reload() or restarting the
+# application.
+# ==============================================================================
+
+features:
+  # ---------------------------------------------------------------------------
+  # Core banking
+  # ---------------------------------------------------------------------------
+
+  # User registration endpoint (/register)
+  registration: true
+
+  # Login endpoints (/login, /api/login)
+  login: true
+
+  # Authenticated dashboard (/dashboard)
+  dashboard: true
+
+  # Fund transfers (/transfer, /api/transfer)
+  transfers: true
+
+  # Transaction history (/transactions/<account_number>, /api/transactions)
+  transactions: true
+
+  # Balance enquiry (/check_balance/<account_number>, /api/check_balance)
+  check_balance: true
+
+  # Loan request submission (/request_loan)
+  loan_requests: true
+
+  # Password reset flows (/forgot-password, /reset-password, /api/*/forgot-password, /api/*/reset-password)
+  password_reset: true
+
+  # ---------------------------------------------------------------------------
+  # Virtual cards
+  # ---------------------------------------------------------------------------
+
+  # Virtual card management (/api/virtual-cards/*)
+  virtual_cards: true
+
+  # ---------------------------------------------------------------------------
+  # Bill payments
+  # ---------------------------------------------------------------------------
+
+  # Bill categories, billers, and payment endpoints (/api/bill-*)
+  bill_payments: true
+
+  # ---------------------------------------------------------------------------
+  # Profile
+  # ---------------------------------------------------------------------------
+
+  # Profile picture upload via file or URL (/upload_profile_picture, /upload_profile_picture_url)
+  file_upload: true
+
+  # User bio update (/update_bio)
+  profile_bio: true
+
+  # ---------------------------------------------------------------------------
+  # GraphQL
+  # ---------------------------------------------------------------------------
+
+  # GraphQL query endpoint (/graphql POST + GET info)
+  graphql: true
+
+  # ---------------------------------------------------------------------------
+  # AI / chat
+  # ---------------------------------------------------------------------------
+
+  # Authenticated AI chat (/api/ai/chat)
+  ai_chat: true
+
+  # Anonymous AI chat (/api/ai/chat/anonymous)
+  ai_chat_anonymous: true
+
+  # AI system info endpoint (/api/ai/system-info)
+  ai_system_info: true
+
+  # ---------------------------------------------------------------------------
+  # Admin
+  # ---------------------------------------------------------------------------
+
+  # Admin panel and admin API endpoints (/sup3r_s3cr3t_admin, /admin/*)
+  admin_panel: true
+
+  # ---------------------------------------------------------------------------
+  # Debug / internal / intentionally-vulnerable endpoints
+  # ---------------------------------------------------------------------------
+
+  # Debug user listing endpoint (/debug/users)
+  debug_endpoints: true
+
+  # Internal secret and config endpoints (/internal/secret, /internal/config.json)
+  internal_endpoints: true
+
+  # Simulated AWS IMDS endpoints (/latest/meta-data/*)
+  ssrf_endpoints: true
