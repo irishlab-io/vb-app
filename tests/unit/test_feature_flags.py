@@ -156,13 +156,13 @@ class TestAllFlags:
 class TestThreadSafety:
     def test_concurrent_reads_are_safe(self, tmp_path):
         ff = FeatureFlags(config_path=tmp_path / "missing.yml")
-        errors = []
+        errors: list[BaseException] = []
 
         def read():
             try:
                 for _ in range(100):
                     ff.is_enabled("graphql")
-            except Exception as exc:  # noqa: BLE001
+            except BaseException as exc:  # noqa: BLE001 — collect any threading error
                 errors.append(exc)
 
         threads = [threading.Thread(target=read) for _ in range(10)]
@@ -177,20 +177,20 @@ class TestThreadSafety:
         cfg = tmp_path / "feature_flags.yml"
         _write_yaml(cfg, {"features": {"graphql": True}})
         ff = FeatureFlags(config_path=cfg)
-        errors = []
+        errors: list[BaseException] = []
 
         def reload_loop():
             try:
                 for _ in range(20):
                     ff.reload()
-            except Exception as exc:  # noqa: BLE001
+            except BaseException as exc:  # noqa: BLE001 — collect any threading error
                 errors.append(exc)
 
         def read_loop():
             try:
                 for _ in range(100):
                     ff.is_enabled("graphql")
-            except Exception as exc:  # noqa: BLE001
+            except BaseException as exc:  # noqa: BLE001 — collect any threading error
                 errors.append(exc)
 
         threads = [threading.Thread(target=reload_loop)] + [threading.Thread(target=read_loop) for _ in range(5)]

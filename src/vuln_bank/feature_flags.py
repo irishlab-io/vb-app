@@ -75,8 +75,11 @@ _DEFAULTS: dict[str, bool] = {
 }
 
 # Path to the YAML config file.  By default we look for ``feature_flags.yml``
-# two directories above this file (i.e. the project root).
-_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[3] / "feature_flags.yml"
+# two directories above this file (i.e. the project root):
+#   parents[0] → src/vuln_bank
+#   parents[1] → src
+#   parents[2] → project root
+_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "feature_flags.yml"
 
 
 class FeatureFlags:
