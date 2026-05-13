@@ -32,6 +32,7 @@ from vuln_bank.database import (
     init_connection_pool,
     init_db,
 )
+from vuln_bank.feature_flags import feature_required
 from vuln_bank.transaction_graphql import transaction_graphql_schema
 
 _PKG_DIR = Path(__file__).resolve().parent
@@ -291,6 +292,7 @@ def health_check():
 
 
 @app.route("/graphql", methods=["GET"])
+@feature_required("graphql")
 def graphql_info():
     return jsonify(
         {
@@ -305,6 +307,7 @@ def graphql_info():
 
 
 @app.route("/graphql", methods=["POST"])
+@feature_required("graphql")
 @token_required
 def graphql_endpoint(current_user):
     payload = request.get_json(silent=True) or {}
@@ -371,6 +374,7 @@ def blog():
 
 
 @app.route("/register", methods=["GET", "POST"])
+@feature_required("registration")
 def register():
     if request.method == "POST":
         try:
@@ -450,6 +454,7 @@ def register():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@feature_required("login")
 def login():
     if request.method == "POST":
         try:
@@ -519,6 +524,7 @@ def login():
 
 
 @app.route("/debug/users")
+@feature_required("debug_endpoints")
 def debug_users():
     users = execute_query("SELECT id, username, password, account_number, is_admin FROM users")
     return jsonify(
@@ -538,6 +544,7 @@ def debug_users():
 
 
 @app.route("/dashboard")
+@feature_required("dashboard")
 @token_required
 def dashboard(current_user):
     user = execute_query("SELECT * FROM users WHERE id = %s", (current_user["user_id"],))[0]
@@ -567,6 +574,7 @@ def dashboard(current_user):
 
 # Check balance endpoint
 @app.route("/check_balance/<account_number>")
+@feature_required("check_balance")
 def check_balance(account_number):
     try:
         user = execute_query(f"SELECT username, balance FROM users WHERE account_number='{account_number}'")
@@ -587,6 +595,7 @@ def check_balance(account_number):
 
 # Transfer endpoint
 @app.route("/transfer", methods=["POST"])
+@feature_required("transfers")
 @token_required
 def transfer(current_user):
     try:
@@ -647,6 +656,7 @@ def transfer(current_user):
 
 # Get transaction history endpoint
 @app.route("/transactions/<account_number>")
+@feature_required("transactions")
 def get_transaction_history(account_number):
     try:
         query = f"""
@@ -699,6 +709,7 @@ def get_transaction_history(account_number):
 
 
 @app.route("/upload_profile_picture", methods=["POST"])
+@feature_required("file_upload")
 @token_required
 def upload_profile_picture(current_user):
     if "profile_picture" not in request.files:
@@ -747,6 +758,7 @@ def upload_profile_picture(current_user):
 
 # Upload profile picture by URL (Intentionally Vulnerable to SSRF)
 @app.route("/upload_profile_picture_url", methods=["POST"])
+@feature_required("file_upload")
 @token_required
 def upload_profile_picture_url(current_user):
     try:
@@ -802,6 +814,7 @@ def upload_profile_picture_url(current_user):
 
 # Update user bio (Stored XSS vulnerability - no input sanitization)
 @app.route("/update_bio", methods=["POST"])
+@feature_required("profile_bio")
 @token_required
 def update_bio(current_user):
     try:
@@ -835,6 +848,7 @@ def _is_loopback_request():
 
 
 @app.route("/internal/secret", methods=["GET"])
+@feature_required("internal_endpoints")
 def internal_secret():
     # Soft internal check: allow only loopback requests
     if not _is_loopback_request():
@@ -873,6 +887,7 @@ def internal_secret():
 
 
 @app.route("/internal/config.json", methods=["GET"])
+@feature_required("internal_endpoints")
 def internal_config():
     if not _is_loopback_request():
         return jsonify({"error": "Internal resource. Loopback only."}), 403
@@ -894,6 +909,7 @@ def internal_config():
 
 # Cloud metadata mock (e.g., AWS IMDS) for SSRF demos
 @app.route("/latest/meta-data/", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_root():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -917,6 +933,7 @@ def metadata_root():
 
 
 @app.route("/latest/meta-data/ami-id", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_ami():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -924,6 +941,7 @@ def metadata_ami():
 
 
 @app.route("/latest/meta-data/hostname", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_hostname():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -931,6 +949,7 @@ def metadata_hostname():
 
 
 @app.route("/latest/meta-data/instance-id", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_instance():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -938,6 +957,7 @@ def metadata_instance():
 
 
 @app.route("/latest/meta-data/local-ipv4", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_local_ip():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -945,6 +965,7 @@ def metadata_local_ip():
 
 
 @app.route("/latest/meta-data/public-ipv4", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_public_ip():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -952,6 +973,7 @@ def metadata_public_ip():
 
 
 @app.route("/latest/meta-data/security-groups", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_sg():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -959,6 +981,7 @@ def metadata_sg():
 
 
 @app.route("/latest/meta-data/iam/", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_iam_root():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -966,6 +989,7 @@ def metadata_iam_root():
 
 
 @app.route("/latest/meta-data/iam/security-credentials/", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_iam_list():
     if not _is_loopback_request():
         return make_response("Forbidden", 403)
@@ -973,6 +997,7 @@ def metadata_iam_list():
 
 
 @app.route("/latest/meta-data/iam/security-credentials/vulnbank-role", methods=["GET"])
+@feature_required("ssrf_endpoints")
 def metadata_iam_role():
     if not _is_loopback_request():
         return jsonify({"error": "Forbidden"}), 403
@@ -991,6 +1016,7 @@ def metadata_iam_role():
 
 # Loan request endpoint
 @app.route("/request_loan", methods=["POST"])
+@feature_required("loan_requests")
 @token_required
 def request_loan(current_user):
     try:
@@ -1012,6 +1038,7 @@ def request_loan(current_user):
 
 # Hidden admin endpoint (security through obscurity)
 @app.route("/sup3r_s3cr3t_admin")
+@feature_required("admin_panel")
 @token_required
 def admin_panel(current_user):
     if not current_user["is_admin"]:
@@ -1056,6 +1083,7 @@ def admin_panel(current_user):
 
 
 @app.route("/admin/approve_loan/<int:loan_id>", methods=["POST"])
+@feature_required("admin_panel")
 @token_required
 def approve_loan(current_user, loan_id):
     if not current_user.get("is_admin"):
@@ -1110,6 +1138,7 @@ def approve_loan(current_user, loan_id):
 
 # Delete account endpoint
 @app.route("/admin/delete_account/<int:user_id>", methods=["POST"])
+@feature_required("admin_panel")
 @token_required
 def delete_account(current_user, user_id):
     if not current_user.get("is_admin"):
@@ -1136,6 +1165,7 @@ def delete_account(current_user, user_id):
 
 
 @app.route("/admin/toggle_suspension/<int:user_id>", methods=["POST"])
+@feature_required("admin_panel")
 @token_required
 def toggle_account_suspension(current_user, user_id):
     if not current_user.get("is_admin"):
@@ -1182,6 +1212,7 @@ def toggle_account_suspension(current_user, user_id):
 
 # Create admin endpoint
 @app.route("/admin/create_admin", methods=["POST"])
+@feature_required("admin_panel")
 @token_required
 def create_admin(current_user):
     if not current_user.get("is_admin"):
@@ -1210,6 +1241,7 @@ def create_admin(current_user):
 
 # Forgot password endpoint
 @app.route("/forgot-password", methods=["GET", "POST"])
+@feature_required("password_reset")
 def forgot_password():
     if request.method == "POST":
         try:
@@ -1250,6 +1282,7 @@ def forgot_password():
 
 # Reset password endpoint
 @app.route("/reset-password", methods=["GET", "POST"])
+@feature_required("password_reset")
 def reset_password():
     if request.method == "POST":
         try:
@@ -1287,6 +1320,7 @@ def reset_password():
 
 # V1 API - Maintains all current vulnerabilities
 @app.route("/api/v1/forgot-password", methods=["POST"])
+@feature_required("password_reset")
 def api_v1_forgot_password():
     try:
         data = request.get_json()
@@ -1324,6 +1358,7 @@ def api_v1_forgot_password():
 
 # V2 API - Fixes excessive data exposure but still vulnerable to other issues
 @app.route("/api/v2/forgot-password", methods=["POST"])
+@feature_required("password_reset")
 def api_v2_forgot_password():
     try:
         data = request.get_json()
@@ -1359,6 +1394,7 @@ def api_v2_forgot_password():
 
 # V3 API - Uses 4-digit PIN, otherwise similar vulnerabilities
 @app.route("/api/v3/forgot-password", methods=["POST"])
+@feature_required("password_reset")
 def api_v3_forgot_password():
     try:
         data = request.get_json()
@@ -1394,6 +1430,7 @@ def api_v3_forgot_password():
 
 # API endpoint to get user details (for admin modal)
 @app.route("/api/v3/user/<int:user_id>", methods=["GET"])
+@feature_required("admin_panel")
 @token_required
 def api_v3_get_user(current_user, user_id):
     """Get user details by ID."""
@@ -1422,6 +1459,7 @@ def api_v3_get_user(current_user, user_id):
 
 # V1 API for reset password
 @app.route("/api/v1/reset-password", methods=["POST"])
+@feature_required("password_reset")
 def api_v1_reset_password():
     try:
         data = request.get_json()
@@ -1473,6 +1511,7 @@ def api_v1_reset_password():
 
 # V2 API for reset password
 @app.route("/api/v2/reset-password", methods=["POST"])
+@feature_required("password_reset")
 def api_v2_reset_password():
     try:
         data = request.get_json()
@@ -1517,6 +1556,7 @@ def api_v2_reset_password():
 
 # V3 API for reset password - expects 4-digit PIN
 @app.route("/api/v3/reset-password", methods=["POST"])
+@feature_required("password_reset")
 def api_v3_reset_password():
     try:
         data = request.get_json()
@@ -1545,6 +1585,7 @@ def api_v3_reset_password():
 
 
 @app.route("/api/transactions", methods=["GET"])
+@feature_required("transactions")
 @token_required
 def api_transactions(current_user):
     account_number = request.args.get("account_number")
@@ -1582,6 +1623,7 @@ def api_transactions(current_user):
 
 
 @app.route("/api/virtual-cards/create", methods=["POST"])
+@feature_required("virtual_cards")
 @token_required
 def create_virtual_card(current_user):
     try:
@@ -1634,6 +1676,7 @@ def create_virtual_card(current_user):
 
 
 @app.route("/api/virtual-cards", methods=["GET"])
+@feature_required("virtual_cards")
 @token_required
 def get_virtual_cards(current_user):
     try:
@@ -1686,6 +1729,7 @@ def get_virtual_cards(current_user):
 
 
 @app.route("/api/virtual-cards/<int:card_id>/toggle-freeze", methods=["POST"])
+@feature_required("virtual_cards")
 @token_required
 def toggle_card_freeze(current_user, card_id):
     try:
@@ -1713,6 +1757,7 @@ def toggle_card_freeze(current_user, card_id):
 
 
 @app.route("/api/virtual-cards/<int:card_id>/transactions", methods=["GET"])
+@feature_required("virtual_cards")
 @token_required
 def get_card_transactions(current_user, card_id):
     try:
@@ -1751,6 +1796,7 @@ def get_card_transactions(current_user, card_id):
 
 
 @app.route("/api/virtual-cards/<int:card_id>/update-limit", methods=["POST"])
+@feature_required("virtual_cards")
 @token_required
 def update_card_limit(current_user, card_id):
     try:
@@ -1807,6 +1853,7 @@ def update_card_limit(current_user, card_id):
 
 
 @app.route("/api/virtual-cards/<int:card_id>/fund", methods=["POST"])
+@feature_required("virtual_cards")
 @token_required
 def fund_virtual_card(current_user, card_id):
     try:
@@ -1941,6 +1988,7 @@ def fund_virtual_card(current_user, card_id):
 
 
 @app.route("/api/bill-categories", methods=["GET"])
+@feature_required("bill_payments")
 def get_bill_categories():
     try:
         query = "SELECT * FROM bill_categories WHERE is_active = TRUE"
@@ -1962,6 +2010,7 @@ def get_bill_categories():
 
 
 @app.route("/api/billers/by-category/<int:category_id>", methods=["GET"])
+@feature_required("bill_payments")
 def get_billers_by_category(category_id):
     try:
         query = f"""
@@ -1992,6 +2041,7 @@ def get_billers_by_category(category_id):
 
 
 @app.route("/api/bill-payments/create", methods=["POST"])
+@feature_required("bill_payments")
 @token_required
 def create_bill_payment(current_user):
     try:
@@ -2130,6 +2180,7 @@ def create_bill_payment(current_user):
 
 
 @app.route("/api/bill-payments/history", methods=["GET"])
+@feature_required("bill_payments")
 @token_required
 def get_payment_history(current_user):
     try:
@@ -2177,6 +2228,7 @@ def get_payment_history(current_user):
 
 # AI CUSTOMER SUPPORT AGENT ROUTES
 @app.route("/api/ai/chat", methods=["POST"])
+@feature_required("ai_chat")
 @ai_rate_limit
 @token_required
 def ai_chat_authenticated(current_user):
@@ -2237,6 +2289,7 @@ def ai_chat_authenticated(current_user):
 
 
 @app.route("/api/ai/chat/anonymous", methods=["POST"])
+@feature_required("ai_chat_anonymous")
 @ai_rate_limit
 def ai_chat_anonymous():
     """Anonymous AI chat endpoint (Unauthenticated Mode)."""
@@ -2269,6 +2322,7 @@ def ai_chat_anonymous():
 
 
 @app.route("/api/ai/system-info", methods=["GET"])
+@feature_required("ai_system_info")
 @ai_rate_limit
 def ai_system_info():
     """Exposes AI system information."""
